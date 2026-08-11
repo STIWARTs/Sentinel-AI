@@ -1,0 +1,11 @@
+.env
+*.env
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+dist/
+build/
+coverage/
+.vscode/
+ml-pipeline/data/cicids2017/*.csv
