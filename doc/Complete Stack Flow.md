@@ -93,8 +93,8 @@ Here's the complete end-to-end stack — every stage, what tool/library is used,
 
 | Tool | Purpose |
 |---|---|
-| **Anthropic API / Google Gemini API** | LLM that converts technical alerts + SHAP values into plain-English explanations, answers analyst questions |
-| **`anthropic` (Python SDK)** | Official client library to call Claude API |
+| **Google Gemini API** | LLM that converts technical alerts + SHAP values into plain-English explanations, answers analyst questions |
+| **`google-genai` (Python SDK)** | Official client library to call Gemini API |
 | **Prompt engineering (system prompt with SHAP context + MITRE mapping)** | Feeds structured detection data into the LLM as context |
 
 ## Stage 11: Database
@@ -173,7 +173,7 @@ Predict attack type + confidence
       ↓
 Store in PostgreSQL, cache in Redis
       ↓
-SHAP explains prediction → Claude API generates plain-English explanation
+SHAP explains prediction → Gemini API generates plain-English explanation
       ↓
 WebSocket pushes to React dashboard
       ↓
@@ -188,7 +188,7 @@ Analyst views on Dashboard → takes action → PDF report generated (reportlab)
 
 If the full stack feels like too much, here's the **bare essential set** to get a working demo:
 
-`pandas, numpy, scikit-learn, xgboost, imblearn, joblib` (ML) + `scapy` (capture) + `fastapi, uvicorn, sqlalchemy` (backend) + `postgresql` (DB) + `react, recharts` (frontend) + `anthropic` (Copilot) — everything else (Redis, Celery, Telegram, threat intel APIs, Docker) can be "future scope" in your report.
+`pandas, numpy, scikit-learn, xgboost, imblearn, joblib` (ML) + `scapy` (capture) + `fastapi, uvicorn, sqlalchemy` (backend) + `postgresql` (DB) + `react, recharts` (frontend) + `google-genai` (Copilot) — everything else (Redis, Celery, Telegram, threat intel APIs, Docker) can be "future scope" in your report.
 
 ---
 

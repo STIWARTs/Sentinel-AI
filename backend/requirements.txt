@@ -6,3 +6,9 @@ python-dotenv
 psycopg2-binary
 python-jose[cryptography]
 passlib[bcrypt]
+joblib
+pandas
+scikit-learn
+xgboost
+google-genai
+python-multipart

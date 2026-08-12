@@ -51,7 +51,7 @@ sentinel-ai/
 │   │   ├── risk_scoring.py
 │   │   ├── mitre_mapping.py
 │   │   ├── alert_service.py            # email/telegram
-│   │   └── copilot_service.py          # Claude API
+│   │   └── copilot_service.py          # Google Gemini API
 │   ├── routers/
 │   │   ├── ingest.py
 │   │   ├── incidents.py
@@ -211,7 +211,7 @@ POST /api/ingest ─────────────────►  Receive
                                     │
                                     ▼
                           generate_explanation()
-                          via Claude API
+                          via Gemini API
                           (copilot_service.py)
                                     │
                                     ▼

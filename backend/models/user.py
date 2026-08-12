@@ -1,14 +1,15 @@
-"""User ORM model."""
+# User ORM model — stores analyst/admin accounts for dashboard login.
+# Passwords are stored as bcrypt hashes; the plaintext is never persisted.
 
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import declarative_base
 
-Base = declarative_base()
+from database import Base
 
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    role = Column(String, default="viewer")   # admin / analyst / viewer
