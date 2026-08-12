@@ -1,0 +1,22 @@
+[
+  "Flow Duration",
+  "Total Fwd Packets",
+  "Total Backward Packets",
+  "Total Length of Fwd Packets",
+  "Total Length of Bwd Packets",
+  "Flow Bytes/s",
+  "Flow Packets/s",
+  "Flow IAT Mean",
+  "Flow IAT Std",
+  "Flow IAT Max",
+  "Flow IAT Min",
+  "SYN Flag Count",
+  "ACK Flag Count",
+  "RST Flag Count",
+  "FIN Flag Count",
+  "PSH Flag Count",
+  "Packet Length Mean",
+  "Packet Length Std",
+  "Min Packet Length",
+  "Max Packet Length"
+]

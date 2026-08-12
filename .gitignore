@@ -9,3 +9,5 @@ build/
 coverage/
 .vscode/
 ml-pipeline/data/cicids2017/*.csv
+
+AGENTS.md
