@@ -159,6 +159,9 @@ Within 15 minutes of each other, run the PortScan replay (Test 2) and then
 the BruteForce replay (Tuesday). When BruteForce arrives after PortScan, the
 chain `["PortScan", "BruteForce"]` matches and an incident is created.
 
+Important: correlation state is in-memory and resets on every backend
+restart — run both replays after the final uvicorn start, back to back.
+
 Verify in the database:
 
 ```powershell
@@ -173,14 +176,30 @@ attack_chain: PortScan -> BruteForce
 mitre_technique: T1110
 ```
 
-`ai_explanation` is only filled when `GEMINI_API_KEY` in `backend/.env`
-contains a valid key (real Gemini keys start with `AIza`). The pipeline
-never blocks on a missing or invalid key — the explanation simply stays empty.
+Verify the Gemini-written explanation on the newest incident (the terminal
+running uvicorn only logs that Gemini was called — the text itself is stored
+in the database):
+
+```powershell
+docker exec sentinelai-postgres-1 psql -U sentinel -d sentinel_ai -c "SELECT ai_explanation FROM incidents ORDER BY id DESC LIMIT 1;"
+```
+
+Expected: a full analyst-style paragraph describing the chain, the MITRE
+technique, and recommended next steps. An empty result means the Gemini call
+failed or was skipped (see below).
+
+`ai_explanation` is only filled when a valid `GEMINI_API_KEY` is visible to
+the backend process. Current keys from Google AI Studio use the new `AQ.`
+prefix format. Note that an OS-level environment variable of the same name
+overrides `backend/.env` — if explanations stay empty despite a good key in
+the file, check for a stale key set in Windows user environment variables.
+The pipeline never blocks on a missing or invalid key — the explanation
+simply stays empty.
 
 ### Test 4 — authentication and protected endpoints
 
 ```powershell
-curl -X POST http://localhost:8888/api/auth/login -H "Content-Type: application/json" -d '{\"username\": \"admin\", \"password\": \"<your SEED_ADMIN_PASSWORD>\"}'
+curl -X POST http://localhost:8888/api/auth/login -H "Content-Type: application/json" -d '{"username": "admin", "password": "<your SEED_ADMIN_PASSWORD>"}'
 ```
 
 A successful login returns a JWT. Use it on protected endpoints:
@@ -236,9 +255,10 @@ Dataset quick reference (which file shows which attacks):
 | Whole backend freezes after restarting Postgres | Stale pooled DB connections | Fixed by `pool_pre_ping=True` in `database.py`; just restart uvicorn |
 | Login returns 500 right after a pip downgrade | The running process still holds the old module in memory | Restart uvicorn (Ctrl+C and start again) |
 | `InconsistentVersionWarning` at startup | Model was pickled with scikit-learn 1.6.1, runtime is newer | Warning only for now; proper fixes are retraining the notebook or pinning scikit-learn in a Python 3.12 venv |
-| Empty `ai_explanation` on incidents | Missing/invalid `GEMINI_API_KEY` | Get a key from https://aistudio.google.com (starts with `AIza`), put it in `backend/.env`, restart |
+| Empty `ai_explanation` on incidents | Missing/invalid `GEMINI_API_KEY`, or a stale OS-level env var overriding `.env` | Set a key from https://aistudio.google.com (new keys start with `AQ.`) in `backend/.env`; check Windows user environment variables for a stale `GEMINI_API_KEY`; restart uvicorn |
+| `echo $env:GEMINI_API_KEY` prints a value even though the registry entry was deleted | Terminals inherit the environment of the program that launched them; an IDE opened earlier keeps the stale variable for all its integrated terminals | Run `Remove-Item Env:GEMINI_API_KEY` in the shell before starting uvicorn, or fully restart the IDE |
 | No incident created despite attack flows | Incidents need a full chain (e.g. PortScan then BruteForce) within 15 minutes from one IP | Replay the two attack CSVs back to back, or check `ATTACK_CHAINS` in `services/correlation_engine.py` |
-| Correlation "forgets" previous attacks | Correlation state is in-memory by design | Restart-safe demo: replay both attack CSVs in one sitting; Redis persistence is future scope |
+| Correlation "forgets" previous attacks | Correlation state is in-memory by design and resets on backend restart | Replay both attack CSVs in one sitting after the final restart; Redis persistence is future scope |
 
 ---
 
