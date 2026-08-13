@@ -6,6 +6,9 @@ python-dotenv
 psycopg2-binary
 python-jose[cryptography]
 passlib[bcrypt]
+# passlib 1.7.4 breaks with bcrypt>=4.1 (its internal 72-byte probe raises),
+# so pin the last compatible bcrypt release.
+bcrypt==4.0.1
 joblib
 pandas
 scikit-learn
