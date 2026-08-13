@@ -1,7 +1,7 @@
 # Application settings — reads every value from the .env file (or environment).
 # Never hardcode real secrets here; add them to backend/.env (git-ignored).
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -31,8 +31,11 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHAT_ID: str = ""
 
-    class Config:
-        env_file = ".env"
+    # Seed admin user credentials
+    SEED_ADMIN_USERNAME: str = "admin"
+    SEED_ADMIN_PASSWORD: str = ""
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()

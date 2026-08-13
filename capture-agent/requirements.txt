@@ -1,3 +1,5 @@
 scapy
 requests
 python-dotenv
+# pandas is only used by replay.py (dataset replay demo fallback).
+pandas

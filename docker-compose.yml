@@ -4,7 +4,8 @@ services:
     environment:
       POSTGRES_DB: sentinel_ai
       POSTGRES_USER: sentinel
-      POSTGRES_PASSWORD: sentinel
+      # Must match DATABASE_URL in backend/.env (sentinel123).
+      POSTGRES_PASSWORD: sentinel123
     ports:
       - "5432:5432"
     volumes:
