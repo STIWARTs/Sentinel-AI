@@ -28,7 +28,7 @@ Here's the complete status check — everything covered in this conversation, or
 - Risk scoring logic (`risk_scoring.py`)
 - MITRE ATT&CK mapping (`mitre_mapping.py`)
 - Correlation engine — attack chain detection (`correlation_engine.py`)
-- AI Copilot service using Claude API (`copilot_service.py`)
+- AI Copilot service using Gemini API (`copilot_service.py`)
 - WebSocket connection manager (`manager.py`)
 - Ingest endpoint (full pipeline: predict → score → save → correlate → incident → explain → broadcast)
 - Incidents CRUD endpoints

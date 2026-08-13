@@ -759,7 +759,7 @@ When correlation engine creates an incident → "new_incident" WS message
       ↓
 Incidents.jsx / IncidentDetailPage.jsx → pull from REST API (/api/incidents)
       ↓
-CopilotChat.jsx → POST /api/copilot/ask → Claude-generated answers
+CopilotChat.jsx → POST /api/copilot/ask → Gemini-generated answers
 ```
 
 ---

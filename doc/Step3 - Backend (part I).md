@@ -26,7 +26,7 @@ backend/
 │   ├── risk_scoring.py          # computes risk score
 │   ├── mitre_mapping.py         # maps attack type -> MITRE technique
 │   ├── alert_service.py         # email/telegram notifications
-│   └── copilot_service.py       # Claude API integration
+│   └── copilot_service.py       # Google Gemini API integration
 ├── routers/
 │   ├── ingest.py               # POST /api/ingest (from capture agent)
 │   ├── incidents.py            # incident CRUD
@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
     JWT_SECRET: str = "change-this-in-production"
     JWT_ALGORITHM: str = "HS256"
-    ANTHROPIC_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
 
     class Config:
         env_file = ".env"
@@ -275,14 +275,14 @@ def is_subsequence(pattern, sequence):
     return all(item in it for item in pattern)
 ```
 
-## Step 7: AI Copilot Service (Claude integration)
+## Step 7: AI Copilot Service (Google Gemini integration)
 
 ```python
 # services/copilot_service.py
-import anthropic
+from google import genai
 from config import settings
 
-client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 def generate_explanation(incident_data: dict):
     prompt = f"""You are a cybersecurity analyst assistant. Explain this detected incident 
@@ -295,12 +295,11 @@ MITRE Technique: {incident_data.get('mitre_technique')}
 
 Keep it under 100 words. Be direct and actionable."""
 
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=300,
-        messages=[{"role": "user", "content": prompt}]
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
     )
-    return response.content[0].text
+    return response.text
 
 def answer_question(question: str, context: dict):
     prompt = f"""Incident context: {context}
@@ -309,12 +308,11 @@ Analyst question: {question}
 
 Answer concisely as a security expert."""
 
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=400,
-        messages=[{"role": "user", "content": prompt}]
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
     )
-    return response.content[0].text
+    return response.text
 ```
 
 ## Step 8: WebSocket Manager (live dashboard push)
@@ -616,7 +614,7 @@ joblib
 pandas
 scikit-learn
 xgboost
-anthropic
+google-genai
 python-multipart
 ```
 
@@ -645,7 +643,7 @@ If attack chain matched → create Incident in DB
       ↓
 get_mitre_info() → attach MITRE technique
       ↓
-generate_explanation() via Claude → attach AI explanation
+generate_explanation() via Gemini → attach AI explanation
       ↓
 Broadcast new_incident via WebSocket → dashboard shows alert popup
       ↓
