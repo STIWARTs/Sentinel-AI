@@ -28,9 +28,12 @@ Postgres via Docker:
 | JWT login + role-based access control | Working | admin login, viewer < analyst < admin hierarchy |
 | WebSocket live broadcast | Wired | broadcast calls in ingest flow; frontend consumer not built yet |
 
-The dataset replay script (`capture-agent/replay.py`) acts as the stand-in
-for the live capture agent and is the official demo path until the real
-agent exists.
+The live capture agent (`capture-agent/agent.py`) is now implemented and is
+the real ingestion path: scapy sniffing -> bidirectional 5-tuple flow
+aggregation -> the same 20 CICIDS2017 features -> POST /api/ingest.
+
+`capture-agent/replay.py` stays as the demo fallback for presentation day and
+for machines without a packet-capture driver.
 
 ## 2. Component ownership and completion
 
@@ -39,7 +42,7 @@ agent exists.
 | ML pipeline / model training (Step 1) | Stiwart | Done. Artifacts in backend/ml/ |
 | Backend, full Step 3 (Step 3 part I + II) | Stiwart | Done and verified live |
 | Dataset replay demo fallback | Stiwart | Done. capture-agent/replay.py |
-| Capture agent (Step 2) | teammate | NOT started. capture-agent/ contains placeholder stubs only |
+| Capture agent (Step 2) | teammate | Done. Live sniffing, flow aggregation, feature computation and sender implemented; see capture-agent/README.md |
 | Frontend dashboard (Step 4) | teammate | NOT started. React skeleton exists in frontend/ |
 | Docker Compose | Stiwart | Postgres service usable; backend/frontend services reference Dockerfiles that do not exist yet |
 
@@ -114,19 +117,31 @@ All three copies of the feature set are in sync — verified file-by-file:
 (0 BENIGN, 1 Bot, 2 BruteForce, 3 DDoS, 4 PortScan).
 
 FEATURE_NAME_MAP in backend/ml/predictor.py translates snake_case agent keys
-to CICIDS2017 names. It is untested against the real agent because the agent
-does not exist yet — re-verify when the teammate implements features.py.
+to CICIDS2017 names. The live agent now exercises it: capture-agent posts
+snake_case keys, and capture-agent/features.py holds AGENT_TO_MODEL, the
+agent-side copy of the same dict.
+
+Three guards keep this from drifting again:
+- agent.py calls verify_feature_sync() before capturing a single packet and
+  refuses to start if AGENT_TO_MODEL no longer matches feature_list.json;
+- capture-agent/test_agent.py asserts AGENT_TO_MODEL equals FEATURE_NAME_MAP
+  (read out of predictor.py with ast, so no ML imports are needed) and that
+  all three feature_list.json copies are identical;
+- sender.py validates every payload before it leaves the agent.
+
 replay.py bypasses the map by sending CICIDS names directly (the predictor
 passes unknown-looking keys through unchanged).
 
 ## 5. Open items
 
 ### Blocking the full demo
-1. Capture agent implementation (teammate) — sniffing, flow aggregation,
-   feature computation, sender. Until then replay.py is the demo path.
-2. Frontend implementation (teammate) — dashboard, incidents, copilot chat,
+1. Frontend implementation (teammate) — dashboard, incidents, copilot chat,
    WebSocket consumption. Needs VITE_API_BASE_URL=http://localhost:8888.
-3. Integration test of agent -> backend -> dashboard once both exist.
+2. Integration test of agent -> backend -> dashboard once the frontend exists.
+3. Npcap must be installed (with "WinPcap API-compatible mode") before the
+   agent can capture live on Windows, and the terminal must run as
+   Administrator. Without it the agent still works via `--pcap`, which
+   replays a capture file through the identical code path.
 
 ### Should do before submission
 4. Resolve scikit-learn version mismatch (retrain model with runtime
@@ -142,7 +157,8 @@ passes unknown-looking keys through unchanged).
 - PDF report generation (frontend Reports.jsx exists, no backend generator)
 - User registration endpoint (login-only by design; users seeded manually)
 - SHAP values at inference time (used only in the training notebook)
-- Capture agent reconnection/buffering logic
+- Capture agent local buffering when the backend is unreachable (it retries
+  with backoff and then drops the flow; nothing is spooled to disk)
 
 ## 6. Quick reference
 
@@ -154,6 +170,13 @@ docker exec sentinelai-postgres-1 psql -U sentinel -d sentinel_ai
 # Backend (from backend/)
 uvicorn main:app --reload --port 8888
 python seed_admin.py
+
+# Live capture agent (from capture-agent/, Administrator terminal)
+python test_agent.py                          # offline self-test, no setup needed
+python agent.py --list-interfaces
+python agent.py --iface "Wi-Fi"
+python agent.py --iface "Wi-Fi" --dry-run     # compute and log, send nothing
+python agent.py --pcap ..\captures\scan.pcap  # replay a capture file
 
 # Demo replay (from capture-agent/)
 python replay.py --rows 20 --delay 0.5 --mix
