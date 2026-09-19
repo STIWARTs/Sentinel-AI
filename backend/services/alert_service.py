@@ -1,44 +1,134 @@
 # Alert service — sends notifications when a new incident is created.
-# Email and Telegram stubs are provided; actual credentials come from config.py / .env.
-#
-# TODO (Step3 Part II): implement SMTP send and Telegram Bot API call.
-# Required env vars (add to .env when ready):
-#   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, ALERT_EMAIL_TO
-#   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+# Gemini-generated incident explanation is included in Email and Telegram alerts.
 
 import logging
+import requests
+import smtplib
 
 from config import settings
 
 logger = logging.getLogger(__name__)
 
 
-def send_incident_alert(incident_title: str, severity: str, src_ip: str) -> None:
-    """Dispatch an email and/or Telegram notification for a newly created incident.
+def send_incident_alert(
+    incident_title: str,
+    severity: str,
+    src_ip: str,
+    explanation: str,
+) -> None:
+    """Send incident alert through Email and Telegram with Gemini explanation."""
 
-    Both channels are skipped silently if the relevant credentials are not configured,
-    so the ingest pipeline is never blocked by a missing alert integration.
-    """
-    _send_email_alert(incident_title, severity, src_ip)
-    _send_telegram_alert(incident_title, severity, src_ip)
+    _send_email_alert(
+        incident_title,
+        severity,
+        src_ip,
+        explanation,
+    )
+
+    _send_telegram_alert(
+        incident_title,
+        severity,
+        src_ip,
+        explanation,
+    )
 
 
-def _send_email_alert(incident_title: str, severity: str, src_ip: str) -> None:
-    """Send an email notification via SMTP. No-op if SMTP_HOST is not configured."""
+def _send_email_alert(
+    incident_title: str,
+    severity: str,
+    src_ip: str,
+    explanation: str,
+) -> None:
+    """Send Email notification via SMTP."""
+
     if not settings.SMTP_HOST:
         return
 
-    # TODO: implement smtplib send here once SMTP credentials are available.
-    # Use settings.SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, ALERT_EMAIL_TO.
-    logger.info(f"Email alert stub called for incident: {incident_title} ({severity})")
+    message = (
+        f"Subject: [SENTINEL AI] {severity} Security Alert\r\n"
+        f"From: {settings.SMTP_USER}\r\n"
+        f"To: {settings.ALERT_EMAIL_TO}\r\n"
+        "\r\n"
+        "SENTINEL AI SECURITY ALERT\r\n"
+        "\r\n"
+        f"Incident: {incident_title}\r\n"
+        f"Severity: {severity}\r\n"
+        f"Source IP: {src_ip}\r\n"
+        "\r\n"
+        "AI ANALYSIS:\r\n"
+        f"{explanation}\r\n"
+    )
+
+    try:
+        with smtplib.SMTP(
+            settings.SMTP_HOST,
+            settings.SMTP_PORT,
+            timeout=20,
+        ) as server:
+
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+
+            server.login(
+                settings.SMTP_USER,
+                settings.SMTP_PASSWORD,
+            )
+
+            server.sendmail(
+                settings.SMTP_USER,
+                settings.ALERT_EMAIL_TO,
+                message,
+            )
+
+        logger.info("Email alert sent successfully.")
+
+    except Exception as e:
+        logger.error(f"Failed to send email alert: {e}")
 
 
-def _send_telegram_alert(incident_title: str, severity: str, src_ip: str) -> None:
-    """Send a Telegram message via Bot API. No-op if TELEGRAM_BOT_TOKEN is not configured."""
+def _send_telegram_alert(
+    incident_title: str,
+    severity: str,
+    src_ip: str,
+    explanation: str,
+) -> None:
+    """Send Telegram notification via Bot API."""
+
     if not settings.TELEGRAM_BOT_TOKEN:
         return
 
-    # TODO: implement requests.post to Telegram sendMessage API here.
-    # URL: https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
-    # Payload: {"chat_id": settings.TELEGRAM_CHAT_ID, "text": message}
-    logger.info(f"Telegram alert stub called for incident: {incident_title} ({severity})")
+    message = (
+        "🚨 SENTINEL AI SECURITY ALERT\n\n"
+        f"Incident: {incident_title}\n"
+        f"Severity: {severity}\n"
+        f"Source IP: {src_ip}\n\n"
+        "🤖 AI ANALYSIS:\n"
+        f"{explanation}"
+    )
+
+    url = (
+        f"https://api.telegram.org/"
+        f"bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+    )
+
+    payload = {
+        "chat_id": settings.TELEGRAM_CHAT_ID,
+        "text": message,
+    }
+
+    try:
+        response = requests.post(
+            url,
+            json=payload,
+            timeout=10,
+        )
+
+        response.raise_for_status()
+
+        logger.info("Telegram alert sent successfully.")
+
+    except requests.RequestException as e:
+        logger.error(
+            f"Failed to send Telegram alert: {e}"
+        )
