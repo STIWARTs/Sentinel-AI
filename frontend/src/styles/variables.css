@@ -1,0 +1,130 @@
+:root {
+  /* ================================
+     Backgrounds
+     ================================ */
+
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-hover: #f8fafc;
+
+  /* ================================
+     Borders
+     ================================ */
+
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
+
+  /* ================================
+     Text
+     ================================ */
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* ================================
+     Brand
+     ================================ */
+
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+
+  /* ================================
+     Status
+     ================================ */
+
+  --success: #16a34a;
+  --success-light: #f0fdf4;
+
+  --warning: #d97706;
+  --warning-light: #fffbeb;
+
+  --danger: #dc2626;
+  --danger-light: #fef2f2;
+
+  --critical: #991b1b;
+  --critical-light: #fef2f2;
+
+  /* ================================
+     Shadows
+     ================================ */
+
+  --shadow-sm:
+    0 1px 2px rgba(15, 23, 42, 0.05);
+
+  --shadow-md:
+    0 4px 12px rgba(15, 23, 42, 0.08);
+
+  /* ================================
+     Radius
+     ================================ */
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* ================================
+     Layout
+     ================================ */
+
+  --sidebar-width: 240px;
+  --topbar-height: 64px;
+
+  /* ================================
+     Typography
+     ================================ */
+
+  --font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+
+/* ==================================
+   Dark theme
+   ================================== */
+
+[data-theme="dark"] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1e293b;
+  --bg-hover: #1e293b;
+
+  --border-color: #273449;
+  --border-light: #1e293b;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-inverse: #0f172a;
+
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-light: #172554;
+
+  --success: #22c55e;
+  --success-light: #052e16;
+
+  --warning: #f59e0b;
+  --warning-light: #451a03;
+
+  --danger: #ef4444;
+  --danger-light: #450a0a;
+
+  --critical: #f87171;
+  --critical-light: #450a0a;
+
+  --shadow-sm:
+    0 1px 2px rgba(0, 0, 0, 0.2);
+
+  --shadow-md:
+    0 4px 12px rgba(0, 0, 0, 0.25);
+}
