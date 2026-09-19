@@ -153,7 +153,7 @@ async def ingest_flow(data: FlowIngestRequest, db: Session = Depends(get_db)):
         })
 
         # 8. Fire alert notifications (email / Telegram stubs).
-        send_incident_alert(incident.title, severity, src_ip)
+        send_incident_alert(incident.title, severity, src_ip, explanation)
 
         logger.info(f"Incident created: id={incident.id} chain={correlation_result['chain']} ip={src_ip}")
 
