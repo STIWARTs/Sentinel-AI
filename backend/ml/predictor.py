@@ -43,10 +43,11 @@ with open(_load("label_mapping.json")) as f:
     _LABEL_MAPPING: dict[str, str] = json.load(f)
 
 
-# PROVISIONAL: these mappings translate the capture agent's snake_case feature keys
-# to the CICIDS2017 column names the model was trained on.
-# Re-verify against capture-agent/features.py once your teammate finalises that file.
-# If a key changes on either side, update this dict AND re-run the Feature Sync Checklist.
+# These mappings translate the capture agent's snake_case feature keys to the
+# CICIDS2017 column names the model was trained on.
+# Verified against capture-agent/features.py::AGENT_TO_MODEL, which is the agent-side
+# copy of this same dict. capture-agent/test_agent.py asserts the two stay identical.
+# If a key changes on either side, update BOTH dicts and re-run the Feature Sync Checklist.
 FEATURE_NAME_MAP: dict[str, str] = {
     # agent key                  : CICIDS2017 model key
     "flow_duration":              "Flow Duration",

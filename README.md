@@ -27,19 +27,48 @@ jupyter notebook notebooks/train_model.ipynb
 
 Place the CICIDS2017 CSV files in `ml-pipeline/data/cicids2017/`, then save the trained artifacts to `ml-pipeline/output/`.
 
-### 2. Capture Agent
+### 2. Capture Agent & Pipeline Modes
 
-The capture agent runs on the monitored machine.
+The capture agent runs on the monitored machine. It supports two modes: **Real Live Traffic Capture** and **Dataset Replay Demo**.
 
+#### Prerequisites:
 ```bash
 cd capture-agent
-python -m venv .venv
-.venv\Scripts\activate
 pip install -r requirements.txt
-python agent.py
+# Set AGENT_INGEST_KEY in capture-agent/.env matching backend/.env
 ```
 
-Set any runtime values in `capture-agent/.env` before starting the agent.
+#### Mode A: Real Live Capture Pipeline (`agent.py`)
+Captures real live network traffic from your Wi-Fi or Ethernet adapter, aggregates flows, computes features, and sends them to the backend:
+
+```bash
+# List available network adapters on your machine
+python agent.py --list-interfaces
+
+# Dry-run mode (sniff and compute features locally without sending)
+python agent.py --iface "Wi-Fi" --bpf "ip and not port 8888" --dry-run
+
+# Real live mode (streams live detections to backend & UI)
+python agent.py --iface "Wi-Fi" --bpf "ip and not port 8888"
+
+# Replay a PCAP recording file
+python agent.py --pcap test.pcap
+```
+*Note: Live capture on Windows requires Npcap installed with WinPcap API-compatible mode, and the terminal must be run as Administrator.*
+
+#### Mode B: Dataset Replay Demo Fallback (`replay.py`)
+Reads recorded flow rows directly from the CICIDS2017 dataset CSVs and posts them to the backend (ideal for offline presentations and attack-chain testing):
+
+```bash
+# Replay 20 mixed flows (benign + attack samples)
+python replay.py --rows 20 --delay 0.5 --mix
+
+# Replay PortScan attack dataset
+python replay.py --csv "..\ml-pipeline\data\cicids2017\Friday-WorkingHours-Afternoon-PortScan.pcap_ISCX.csv" --rows 8 --mix
+
+# Replay BruteForce attack dataset (Tuesday)
+python replay.py --csv "..\ml-pipeline\data\cicids2017\Tuesday-WorkingHours.pcap_ISCX.csv" --rows 10 --mix
+```
 
 ### 3. Backend
 

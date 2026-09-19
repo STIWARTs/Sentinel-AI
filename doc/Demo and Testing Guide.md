@@ -1,10 +1,8 @@
 # Demo & Testing Guide (Dataset Replay)
 
-This document explains how to demonstrate and test the full Sentinel AI
-detection pipeline **without a live capture agent**. The capture agent is
-still under development, so `capture-agent/replay.py` acts as its stand-in:
-it reads recorded flows from the CICIDS2017 dataset and posts them to the
-backend exactly like the real agent will.
+This document explains how to demonstrate and test the full Sentinel AI detection pipeline using both **Live Capture Agent** (`agent.py`) for real network traffic and **Dataset Replay** (`replay.py`) for offline dataset demonstrations.
+
+`capture-agent/replay.py` reads recorded flows from the CICIDS2017 dataset CSVs and posts them to the backend, enabling predictable attack-chain demonstrations without requiring live network attacks.
 
 Everything below assumes the project root is `E:\GITHUB\Sentinel AI` and
 PowerShell is used.
