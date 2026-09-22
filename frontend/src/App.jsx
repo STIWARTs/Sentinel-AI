@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Sidebar from "./components/layout/Sidebar";
 import Topbar from "./components/layout/Topbar";
+import StatusBar from "./components/layout/StatusBar";
 import Network from "./pages/Network";
 import Dashboard from "./pages/Dashboard";
 import Incidents from "./pages/Incidents";
@@ -39,6 +40,8 @@ function App() {
                     <Route path="/copilot" element={<Copilot />} />
                   </Routes>
                 </main>
+
+                <StatusBar />
               </div>
             </div>
           }

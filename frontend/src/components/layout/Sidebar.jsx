@@ -5,6 +5,7 @@ import {
   FileText,
   Bot,
   Settings,
+  Shield,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -15,14 +16,19 @@ const navigation = [
     path: "/",
   },
   {
+    label: "Incidents",
+    icon: ShieldAlert,
+    path: "/incidents",
+  },
+  {
     label: "Network",
     icon: Network,
     path: "/network",
   },
   {
-    label: "Incidents",
-    icon: ShieldAlert,
-    path: "/incidents",
+    label: "AI Copilot",
+    icon: Bot,
+    path: "/copilot",
   },
   {
     label: "Reports",
@@ -38,7 +44,7 @@ export default function Sidebar() {
       {/* Brand */}
       <div className="sidebar-brand">
         <div className="brand-icon">
-          S
+          <Shield size={17} strokeWidth={2.5} />
         </div>
 
         <div>
@@ -47,7 +53,7 @@ export default function Sidebar() {
           </div>
 
           <div className="brand-subtitle">
-            Security Operations
+            Intelligent Intrusion Detection
           </div>
         </div>
       </div>
@@ -56,10 +62,6 @@ export default function Sidebar() {
       {/* Main Navigation */}
       <nav className="sidebar-nav">
 
-        <div className="nav-section-title">
-          MONITOR
-        </div>
-
         {navigation.map((item) => {
           const Icon = item.icon;
 
@@ -67,11 +69,12 @@ export default function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
+              end={item.path === "/"}
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
             >
-              <Icon size={18} />
+              <Icon size={16} />
 
               <span>
                 {item.label}
@@ -79,25 +82,6 @@ export default function Sidebar() {
             </NavLink>
           );
         })}
-
-
-        {/* AI Assistance */}
-        <div className="nav-section-title">
-          ASSIST
-        </div>
-
-        <NavLink
-          to="/copilot"
-          className={({ isActive }) =>
-            `nav-item ${isActive ? "active" : ""}`
-          }
-        >
-          <Bot size={18} />
-
-          <span>
-            AI Copilot
-          </span>
-        </NavLink>
 
       </nav>
 
@@ -111,7 +95,7 @@ export default function Sidebar() {
             `nav-item ${isActive ? "active" : ""}`
           }
         >
-          <Settings size={18} />
+          <Settings size={16} />
 
           <span>
             Settings

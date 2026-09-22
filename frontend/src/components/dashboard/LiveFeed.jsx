@@ -1,122 +1,275 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Pause } from "lucide-react";
+import { NavLink } from "react-router-dom";
 
-const events = [
+// ─── Recent Incidents ───────────────────────────────────────────────────────
+
+const incidents = [
   {
-    severity: "Critical",
-    type: "DDoS Attack",
+    time: "10:24:12",
+    type: "DDoS",
     source: "192.168.1.25",
     destination: "192.168.1.1",
-    time: "14:32:08",
-    risk: 92,
+    severity: "Critical",
+    status: "Open",
   },
   {
-    severity: "High",
+    time: "10:23:41",
     type: "Port Scan",
-    source: "10.0.0.42",
-    destination: "Internal Network",
-    time: "14:29:51",
-    risk: 81,
-  },
-  {
+    source: "203.45.67.89",
+    destination: "Multiple",
     severity: "High",
+    status: "Open",
+  },
+  {
+    time: "10:22:18",
     type: "Brute Force",
-    source: "10.0.0.17",
-    destination: "10.0.0.8",
-    time: "14:27:14",
-    risk: 76,
+    source: "185.199.110.23",
+    destination: "192.168.1.10",
+    severity: "High",
+    status: "Investigating",
   },
   {
+    time: "10:21:55",
+    type: "SQL Injection",
+    source: "45.33.12.14",
+    destination: "192.168.1.20",
     severity: "Medium",
-    type: "Suspicious DNS",
-    source: "10.0.0.31",
-    destination: "DNS Server",
-    time: "14:21:43",
-    risk: 54,
+    status: "Open",
   },
   {
-    severity: "Low",
-    type: "Unusual Traffic",
-    source: "10.0.0.56",
-    destination: "External",
-    time: "14:18:02",
-    risk: 32,
+    time: "10:20:33",
+    type: "Data Transfer",
+    source: "10.10.5.4",
+    destination: "172.16.0.8",
+    severity: "Medium",
+    status: "Investigating",
   },
 ];
 
+// ─── Top Source IPs ─────────────────────────────────────────────────────────
+
+const topIPs = [
+  { ip: "192.168.1.25", packets: "1,240,532", pct: 28 },
+  { ip: "203.45.67.89", packets: "892,114", pct: 20 },
+  { ip: "185.199.110.23", packets: "652,421", pct: 15 },
+  { ip: "10.10.5.4", packets: "421,903", pct: 9 },
+  { ip: "45.33.12.14", packets: "391,221", pct: 8 },
+];
+
+// ─── Live Network Feed ───────────────────────────────────────────────────────
+
+const liveFeedEvents = [
+  {
+    time: "10:24:18",
+    source: "192.168.1.25",
+    destination: "192.168.1.1",
+    protocol: "TCP",
+    size: "1.2 KB",
+    info: "[SYN] High volume of SYN packets",
+  },
+  {
+    time: "10:24:17",
+    source: "203.45.67.89",
+    destination: "192.168.1.10",
+    protocol: "TCP",
+    size: "800 B",
+    info: "Port scan detected (multiple ports)",
+  },
+  {
+    time: "10:24:15",
+    source: "185.199.110.23",
+    destination: "192.168.1.1",
+    protocol: "SSH",
+    size: "450 B",
+    info: "Failed login attempt (user: root)",
+  },
+  {
+    time: "10:24:12",
+    source: "10.10.5.4",
+    destination: "172.16.0.8",
+    protocol: "UDP",
+    size: "2.1 KB",
+    info: "Unusual outbound data flow",
+  },
+  {
+    time: "10:24:10",
+    source: "45.33.12.14",
+    destination: "192.168.1.20",
+    protocol: "HTTP",
+    size: "1.8 KB",
+    info: "Suspicious payload detected",
+  },
+];
+
+const protocolColors = {
+  TCP:  { bg: "#eff6ff", color: "#2563eb" },
+  SSH:  { bg: "#f0fdf4", color: "#16a34a" },
+  UDP:  { bg: "#fef9c3", color: "#a16207" },
+  HTTP: { bg: "#fef2f2", color: "#dc2626" },
+};
+
+const severityClass = {
+  Critical: "sev-critical",
+  High: "sev-high",
+  Medium: "sev-medium",
+  Low: "sev-low",
+};
+
+const statusClass = {
+  Open: "stat-open",
+  Investigating: "stat-investigating",
+  Resolved: "stat-resolved",
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+
 export default function LiveFeed() {
   return (
-    <section className="dashboard-panel live-feed">
-      <div className="panel-header">
-        <div>
-          <h2>Live Security Events</h2>
-          <p>Most recent detections from monitored traffic</p>
+    <div className="livefeed-section">
+
+      {/* ── Row 1: Recent Incidents + Top Source IPs ── */}
+      <div className="livefeed-row">
+
+        {/* Recent Incidents */}
+        <section className="dashboard-panel recent-incidents">
+          <div className="panel-header">
+            <div>
+              <h2>Recent Incidents</h2>
+            </div>
+            <NavLink to="/incidents" className="view-all-button">
+              View All <ArrowUpRight size={12} />
+            </NavLink>
+          </div>
+
+          <div className="event-table-wrapper">
+            <table className="event-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Type</th>
+                  <th>Source IP</th>
+                  <th>Destination IP</th>
+                  <th>Severity</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {incidents.map((inc) => (
+                  <tr key={`${inc.source}-${inc.time}`}>
+                    <td className="mono">{inc.time}</td>
+                    <td className="event-type">{inc.type}</td>
+                    <td className="mono">{inc.source}</td>
+                    <td className="mono">{inc.destination}</td>
+                    <td>
+                      <span className={`severity-pill ${severityClass[inc.severity]}`}>
+                        {inc.severity}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-pill ${statusClass[inc.status]}`}>
+                        {inc.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Top Source IPs */}
+        <section className="dashboard-panel top-source-ips">
+          <div className="panel-header">
+            <div>
+              <h2>Top Source IPs</h2>
+              <p>Last 24 Hours</p>
+            </div>
+          </div>
+
+          <div className="event-table-wrapper">
+            <table className="event-table">
+              <thead>
+                <tr>
+                  <th>IP Address</th>
+                  <th>Total Packets</th>
+                  <th style={{ width: 120 }}>%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topIPs.map((row) => (
+                  <tr key={row.ip}>
+                    <td className="mono">{row.ip}</td>
+                    <td className="mono">{row.packets}</td>
+                    <td>
+                      <div className="ip-bar-cell">
+                        <span className="ip-pct">{row.pct}%</span>
+                        <div className="ip-bar-track">
+                          <div
+                            className="ip-bar-fill"
+                            style={{ width: `${row.pct * 3}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+
+      {/* ── Row 2: Live Network Feed ── */}
+      <section className="dashboard-panel live-network-feed">
+        <div className="panel-header">
+          <div>
+            <h2>Live Network Feed</h2>
+          </div>
+          <button className="pause-button" id="pause-feed-button">
+            <Pause size={11} fill="currentColor" />
+            Pause
+          </button>
         </div>
 
-        <button className="view-all-button">
-          View all
-          <ArrowUpRight size={13} />
-        </button>
-      </div>
-
-      <div className="event-table-wrapper">
-        <table className="event-table">
-          <thead>
-            <tr>
-              <th>Severity</th>
-              <th>Detection</th>
-              <th>Source</th>
-              <th>Destination</th>
-              <th>Detected</th>
-              <th>Risk</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {events.map((event) => (
-              <tr key={`${event.source}-${event.time}`}>
-                <td>
-                  <span
-                    className={`severity-badge ${event.severity.toLowerCase()}`}
-                  >
-                    <span className="severity-dot" />
-                    {event.severity}
-                  </span>
-                </td>
-
-                <td className="event-type">
-                  {event.type}
-                </td>
-
-                <td className="mono">
-                  {event.source}
-                </td>
-
-                <td className="destination">
-                  {event.destination}
-                </td>
-
-                <td className="event-time">
-                  {event.time}
-                </td>
-
-                <td>
-                  <span
-                    className={`risk-value ${
-                      event.risk >= 80
-                        ? "high"
-                        : event.risk >= 50
-                          ? "medium"
-                          : "low"
-                    }`}
-                  >
-                    {event.risk}
-                  </span>
-                </td>
+        <div className="event-table-wrapper">
+          <table className="event-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Source IP</th>
+                <th>Destination IP</th>
+                <th>Protocol</th>
+                <th>Size</th>
+                <th>Info</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+            </thead>
+            <tbody>
+              {liveFeedEvents.map((ev) => {
+                const proto = protocolColors[ev.protocol] ?? { bg: "#f1f5f9", color: "#475569" };
+                return (
+                  <tr key={`${ev.source}-${ev.time}`}>
+                    <td className="mono">{ev.time}</td>
+                    <td className="mono">{ev.source}</td>
+                    <td className="mono">{ev.destination}</td>
+                    <td>
+                      <span
+                        className="proto-badge"
+                        style={{ background: proto.bg, color: proto.color }}
+                      >
+                        {ev.protocol}
+                      </span>
+                    </td>
+                    <td className="mono">{ev.size}</td>
+                    <td className="feed-info">{ev.info}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
   );
 }

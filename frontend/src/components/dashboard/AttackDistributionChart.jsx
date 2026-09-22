@@ -7,26 +7,46 @@ import {
 } from "recharts";
 
 const data = [
-  { name: "DDoS", value: 31 },
+  { name: "DDoS", value: 32 },
   { name: "Port Scan", value: 24 },
   { name: "Brute Force", value: 18 },
-  { name: "Other", value: 59 },
+  { name: "SQL Injection", value: 12 },
+  { name: "Malware", value: 8 },
+  { name: "Others", value: 6 },
 ];
 
 const COLORS = [
-  "#b45309",
-  "#7c3aed",
-  "#d97706",
-  "#cbd5e1",
+  "#dc2626",  // red — DDoS
+  "#f97316",  // orange — Port Scan
+  "#eab308",  // yellow — Brute Force
+  "#16a34a",  // green — SQL Injection
+  "#7c3aed",  // purple — Malware
+  "#94a3b8",  // grey — Others
 ];
 
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="chart-tooltip">
+        <p className="chart-tooltip-label">{payload[0].name}</p>
+        <p className="chart-tooltip-row" style={{ color: payload[0].payload.fill }}>
+          {payload[0].value}%
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function AttackDistributionChart() {
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+
   return (
     <section className="dashboard-panel attack-distribution">
       <div className="panel-header">
         <div>
-          <h2>Attack Distribution</h2>
-          <p>Detected events by attack type</p>
+          <h2>Attack Type Distribution</h2>
+          <p>Last 24 Hours</p>
         </div>
       </div>
 
@@ -38,9 +58,11 @@ export default function AttackDistributionChart() {
                 data={data}
                 dataKey="value"
                 nameKey="name"
-                innerRadius="62%"
-                outerRadius="82%"
+                innerRadius="55%"
+                outerRadius="78%"
                 paddingAngle={2}
+                startAngle={90}
+                endAngle={-270}
               >
                 {data.map((entry, index) => (
                   <Cell
@@ -50,29 +72,17 @@ export default function AttackDistributionChart() {
                 ))}
               </Pie>
 
-              <Tooltip
-                contentStyle={{
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "6px",
-                  background: "#ffffff",
-                  fontSize: "11px",
-                }}
-              />
+              <Tooltip content={<CustomTooltip />} />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
         <div className="distribution-list">
           {data.map((item, index) => (
-            <div
-              key={item.name}
-              className="distribution-item"
-            >
+            <div key={item.name} className="distribution-item">
               <span
                 className="distribution-marker"
-                style={{
-                  background: COLORS[index],
-                }}
+                style={{ background: COLORS[index] }}
               />
 
               <span className="distribution-name">
@@ -80,7 +90,7 @@ export default function AttackDistributionChart() {
               </span>
 
               <span className="distribution-value">
-                {item.value}
+                {item.value}%
               </span>
             </div>
           ))}
