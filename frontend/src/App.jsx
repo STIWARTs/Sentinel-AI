@@ -1,36 +1,51 @@
-// export default function App() {
-//   return (
-//     <main className="app-shell">
-//       <h1>Sentinel AI</h1>
-//       <p>Security dashboard scaffold.</p>
-//     </main>
-//   );
-// }
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Sidebar from "./components/layout/Sidebar";
 import Topbar from "./components/layout/Topbar";
+import Network from "./pages/Network";
+import Dashboard from "./pages/Dashboard";
+import Incidents from "./pages/Incidents";
+import IncidentDetailPage from "./pages/IncidentDetailPage";
+import Reports from "./pages/Reports";
+import Login from "./pages/Login";
+import Copilot from "./pages/Copilot";
 
 function App() {
   return (
-    <div className="app-shell">
+    <BrowserRouter>
+      <Routes>
 
-      <Sidebar />
+        <Route path="/login" element={<Login />} />
 
-      <div className="app-main">
+        <Route
+          path="*"
+          element={
+            <div className="app-shell">
+              <Sidebar />
 
-        <Topbar />
+              <div className="app-main">
+                <Topbar />
 
-        <main className="page-container">
-          <h1>Security Overview</h1>
+                <main className="page-container">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/incidents" element={<Incidents />} />
+                    <Route
+                      path="/incidents/:id"
+                      element={<IncidentDetailPage />}
+                    />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/network" element={<Network />} />
+                    <Route path="/copilot" element={<Copilot />} />
+                  </Routes>
+                </main>
+              </div>
+            </div>
+          }
+        />
 
-          <p className="text-secondary">
-            Sentinel AI Security Operations Center
-          </p>
-        </main>
-
-      </div>
-
-    </div>
+      </Routes>
+    </BrowserRouter>
   );
 }
 

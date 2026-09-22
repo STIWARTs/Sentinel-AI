@@ -1,4 +1,7 @@
 :root {
+
+   --font-size-base: 14px;
+   
   /* ================================
      Backgrounds
      ================================ */
@@ -28,9 +31,14 @@
      Brand
      ================================ */
 
+/* 
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
-  --primary-light: #eff6ff;
+  --primary-light: #eff6ff; */
+
+   --primary: #b45309;
+   --primary-hover: #92400e;
+   --primary-light: #fff7ed;
 
   /* ================================
      Status
@@ -105,10 +113,13 @@
   --text-secondary: #cbd5e1;
   --text-muted: #64748b;
   --text-inverse: #0f172a;
-
+/* 
   --primary: #3b82f6;
   --primary-hover: #60a5fa;
-  --primary-light: #172554;
+  --primary-light: #172554; */
+  --primary: #f59e0b;
+  --primary-hover: #fbbf24;
+  --primary-light: #451a03;
 
   --success: #22c55e;
   --success-light: #052e16;

@@ -6,6 +6,7 @@ import {
   Bot,
   Settings,
 } from "lucide-react";
+import { NavLink } from "react-router-dom";
 
 const navigation = [
   {
@@ -33,6 +34,8 @@ const navigation = [
 export default function Sidebar() {
   return (
     <aside className="sidebar">
+
+      {/* Brand */}
       <div className="sidebar-brand">
         <div className="brand-icon">
           S
@@ -49,7 +52,10 @@ export default function Sidebar() {
         </div>
       </div>
 
+
+      {/* Main Navigation */}
       <nav className="sidebar-nav">
+
         <div className="nav-section-title">
           MONITOR
         </div>
@@ -58,54 +64,62 @@ export default function Sidebar() {
           const Icon = item.icon;
 
           return (
-            <a
+            <NavLink
               key={item.path}
-              href={item.path}
-              className={`nav-item ${
-                item.path === "/"
-                  ? "active"
-                  : ""
-              }`}
+              to={item.path}
+              className={({ isActive }) =>
+                `nav-item ${isActive ? "active" : ""}`
+              }
             >
               <Icon size={18} />
 
-              <span>{item.label}</span>
-            </a>
+              <span>
+                {item.label}
+              </span>
+            </NavLink>
           );
         })}
 
+
+        {/* AI Assistance */}
         <div className="nav-section-title">
           ASSIST
         </div>
 
-        <a href="/copilot" className="nav-item">
+        <NavLink
+          to="/copilot"
+          className={({ isActive }) =>
+            `nav-item ${isActive ? "active" : ""}`
+          }
+        >
           <Bot size={18} />
 
-          <span>AI Copilot</span>
-        </a>
+          <span>
+            AI Copilot
+          </span>
+        </NavLink>
+
       </nav>
 
+
+      {/* Bottom Navigation */}
       <div className="sidebar-bottom">
-        <a href="/settings" className="nav-item">
+
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            `nav-item ${isActive ? "active" : ""}`
+          }
+        >
           <Settings size={18} />
 
-          <span>Settings</span>
-        </a>
+          <span>
+            Settings
+          </span>
+        </NavLink>
 
-        <div className="system-status">
-          <span className="status-dot" />
-
-          <div>
-            <div className="status-title">
-              System Operational
-            </div>
-
-            <div className="status-subtitle">
-              All services healthy
-            </div>
-          </div>
-        </div>
       </div>
+
     </aside>
   );
 }
