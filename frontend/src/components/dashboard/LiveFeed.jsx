@@ -1,300 +1,280 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Pause, Play } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { apiGet, WS_URL } from "../../api/client";
+import { NavLink } from "react-router-dom";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import { WS_URL } from "../../api/client";
 
-const MAX_FEED = 40;
-const MAX_INCIDENTS = 8;
-
-function formatClock(value) {
-  const date = value instanceof Date ? value : value ? new Date(value) : new Date();
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleTimeString([], { hour12: false });
-}
-
-function normalizeStatus(status) {
-  if (status === "In Progress") return "Investigating";
-  return status || "Open";
-}
-
-function mapIncidentRow(inc) {
-  return {
-    id: inc.id,
-    time: formatClock(inc.created_at),
-    type: inc.attack_chain ?? inc.title ?? "Unknown",
-    source: inc.src_ip ?? "—",
-    destination: "—",
-    severity: inc.severity ?? "Low",
-    status: normalizeStatus(inc.status),
-  };
-}
-
-function sourceFromIncidentTitle(title) {
-  if (!title || !title.includes(" from ")) return "—";
-  return title.split(" from ").pop();
-}
-
-const topIPs = [
-  { ip: "192.168.1.25", packets: "1,240,532", pct: 28 },
-  { ip: "203.45.67.89", packets: "892,114", pct: 20 },
-  { ip: "185.199.110.23", packets: "652,421", pct: 15 },
-  { ip: "10.10.5.4", packets: "421,903", pct: 9 },
-  { ip: "45.33.12.14", packets: "391,221", pct: 8 },
+const initialIncidents = [
+  {
+    id: "1042",
+    severity: "Critical",
+    type: "DDoS Attack",
+    source: "192.168.1.25",
+    time: "14:32:08",
+  },
+  {
+    id: "1041",
+    severity: "High",
+    type: "Port Scan",
+    source: "10.0.0.42",
+    time: "14:29:51",
+  },
+  {
+    id: "1040",
+    severity: "High",
+    type: "Brute Force",
+    source: "10.0.0.17",
+    time: "14:27:14",
+  },
+  {
+    id: "1039",
+    severity: "Medium",
+    type: "Suspicious DNS",
+    source: "10.0.0.31",
+    time: "14:21:43",
+  },
+  {
+    id: "1038",
+    severity: "Low",
+    type: "Unusual Traffic",
+    source: "10.0.0.56",
+    time: "14:18:02",
+  },
 ];
 
-const protocolColors = {
-  TCP:  { bg: "#eff6ff", color: "#2563eb" },
-  SSH:  { bg: "#f0fdf4", color: "#16a34a" },
-  UDP:  { bg: "#fef9c3", color: "#a16207" },
-  HTTP: { bg: "#fef2f2", color: "#dc2626" },
-};
+const initialFeedEvents = [
+  {
+    time: "14:32:08",
+    source: "192.168.1.25",
+    destination: "192.168.1.1",
+    protocol: "TCP",
+    status: "Blocked",
+  },
+  {
+    time: "14:31:44",
+    source: "10.0.0.42",
+    destination: "10.0.0.1",
+    protocol: "TCP",
+    status: "Detected",
+  },
+  {
+    time: "14:30:21",
+    source: "10.0.0.17",
+    destination: "10.0.0.8",
+    protocol: "SSH",
+    status: "Detected",
+  },
+  {
+    time: "14:29:58",
+    source: "10.0.0.31",
+    destination: "8.8.8.8",
+    protocol: "DNS",
+    status: "Normal",
+  },
+];
 
-const severityClass = {
-  Critical: "sev-critical",
-  High: "sev-high",
-  Medium: "sev-medium",
-  Low: "sev-low",
-};
+function formatTime(value) {
+  if (!value) return new Date().toLocaleTimeString([], { hour12: false });
 
-const statusClass = {
-  Open: "stat-open",
-  Investigating: "stat-investigating",
-  Resolved: "stat-resolved",
-};
+  const date = new Date(value);
+
+  if (!Number.isNaN(date.getTime())) {
+    return date.toLocaleTimeString([], { hour12: false });
+  }
+
+  return String(value);
+}
+
+function severityFromRisk(risk) {
+  const value = Number(risk ?? 0);
+
+  if (value >= 90) return "Critical";
+  if (value >= 70) return "High";
+  if (value >= 40) return "Medium";
+  return "Low";
+}
 
 export default function LiveFeed() {
-  const navigate = useNavigate();
   const { connected, lastMessage } = useWebSocket(`${WS_URL}/ws/live`);
-  const [incidents, setIncidents] = useState([]);
-  const [liveFeedEvents, setLiveFeedEvents] = useState([]);
+
   const [paused, setPaused] = useState(false);
-  const [flashId, setFlashId] = useState(null);
-  const pausedRef = useRef(false);
-  const feedSeq = useRef(0);
-
-  pausedRef.current = paused;
+  const [incidents, setIncidents] = useState(initialIncidents);
+  const [feedEvents, setFeedEvents] = useState(initialFeedEvents);
 
   useEffect(() => {
-    apiGet("/api/incidents")
-      .then((rows) => {
-        if (!Array.isArray(rows)) return;
-        setIncidents(rows.slice(0, MAX_INCIDENTS).map(mapIncidentRow));
-      })
-      .catch((err) => {
-        console.error("Failed to fetch recent incidents:", err);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (!lastMessage?.type) return;
+    if (!lastMessage || paused) return;
 
     if (lastMessage.type === "flow_update") {
-      if (pausedRef.current) return;
-
       const event = {
-        id: `flow-${++feedSeq.current}`,
-        time: formatClock(),
+        time: formatTime(lastMessage.timestamp),
         source: lastMessage.src_ip ?? "—",
-        destination: "—",
-        protocol: lastMessage.prediction || "TCP",
-        size: "—",
-        info: `${lastMessage.prediction ?? "flow"} · risk ${lastMessage.risk_score ?? "—"}`,
+        destination: lastMessage.dst_ip ?? "—",
+        protocol: lastMessage.protocol ?? "—",
+        status:
+          lastMessage.prediction && lastMessage.prediction !== "BENIGN"
+            ? "Detected"
+            : "Normal",
       };
 
-      setLiveFeedEvents((prev) => [event, ...prev].slice(0, MAX_FEED));
-      return;
+      setFeedEvents((current) => [event, ...current].slice(0, 8));
     }
 
     if (lastMessage.type === "new_incident") {
-      const row = {
+      const incident = {
         id: lastMessage.incident_id,
-        time: formatClock(),
-        type: lastMessage.title ?? "New incident",
-        source: sourceFromIncidentTitle(lastMessage.title),
-        destination: "—",
-        severity: lastMessage.severity ?? "High",
-        status: "Open",
+        severity: lastMessage.severity ?? "Medium",
+        type: lastMessage.title ?? "Security Incident",
+        source: "—",
+        time: formatTime(lastMessage.timestamp),
       };
 
-      setIncidents((prev) =>
-        [row, ...prev.filter((item) => item.id !== row.id)].slice(0, MAX_INCIDENTS)
-      );
-      setFlashId(row.id);
+      setIncidents((current) => [incident, ...current].slice(0, 5));
     }
-  }, [lastMessage]);
+  }, [lastMessage, paused]);
 
-  useEffect(() => {
-    if (flashId == null) return undefined;
-    const timer = setTimeout(() => setFlashId(null), 1600);
-    return () => clearTimeout(timer);
-  }, [flashId]);
+  const connectionLabel = useMemo(() => {
+    if (paused) return "Paused";
+    return connected ? "Live" : "Disconnected";
+  }, [connected, paused]);
 
   return (
-    <div className="livefeed-section">
+    <section className="live-feed-section">
 
-      <div className="livefeed-row">
+      <div className="live-feed-header">
+        <div>
+          <h2>Live Network Activity</h2>
+          <p>Real-time events from the security monitoring pipeline</p>
+        </div>
 
-        <section className="dashboard-panel recent-incidents">
+        <div className="live-feed-controls">
+          <span
+            className={`live-feed-status ${
+              connected && !paused ? "connected" : ""
+            }`}
+          >
+            <span className="live-feed-status-dot" />
+            {connectionLabel}
+          </span>
+
+          <button
+            type="button"
+            className="live-feed-pause"
+            onClick={() => setPaused((value) => !value)}
+          >
+            {paused ? <Play size={14} /> : <Pause size={14} />}
+            {paused ? "Resume" : "Pause"}
+          </button>
+        </div>
+      </div>
+
+      <div className="live-feed-grid">
+
+        <div className="live-feed-panel">
           <div className="panel-header">
             <div>
-              <h2>Recent Incidents</h2>
+              <h3>Recent Incidents</h3>
+              <span>Latest detected security events</span>
             </div>
-            <NavLink to="/incidents" className="view-all-button">
-              View All <ArrowUpRight size={12} />
+
+            <NavLink to="/incidents" className="panel-link">
+              View all
+              <ArrowUpRight size={14} />
             </NavLink>
           </div>
 
-          <div className="event-table-wrapper">
-            <table className="event-table">
+          <div className="table-wrapper">
+            <table className="data-table">
               <thead>
                 <tr>
-                  <th>Time</th>
+                  <th>ID</th>
+                  <th>Severity</th>
                   <th>Type</th>
                   <th>Source IP</th>
-                  <th>Destination IP</th>
-                  <th>Severity</th>
-                  <th>Status</th>
+                  <th>Time</th>
                 </tr>
               </thead>
-              <tbody>
-                {incidents.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="feed-info">No incidents yet</td>
-                  </tr>
-                ) : (
-                  incidents.map((inc) => (
-                    <tr
-                      key={inc.id ?? `${inc.source}-${inc.time}`}
-                      className={`${inc.id != null ? "incident-row" : ""} ${flashId === inc.id ? "row-flash" : ""}`.trim()}
-                      onClick={() => inc.id != null && navigate(`/incidents/${inc.id}`)}
-                    >
-                      <td className="mono">{inc.time}</td>
-                      <td className="event-type">{inc.type}</td>
-                      <td className="mono">{inc.source}</td>
-                      <td className="mono">{inc.destination}</td>
-                      <td>
-                        <span className={`severity-pill ${severityClass[inc.severity] ?? "sev-low"}`}>
-                          {inc.severity}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`status-pill ${statusClass[inc.status] ?? "stat-open"}`}>
-                          {inc.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
 
-        <section className="dashboard-panel top-source-ips">
-          <div className="panel-header">
-            <div>
-              <h2>Top Source IPs</h2>
-              <p>Last 24 Hours</p>
-            </div>
-          </div>
-
-          <div className="event-table-wrapper">
-            <table className="event-table">
-              <thead>
-                <tr>
-                  <th>IP Address</th>
-                  <th>Total Packets</th>
-                  <th style={{ width: 120 }}>%</th>
-                </tr>
-              </thead>
               <tbody>
-                {topIPs.map((row) => (
-                  <tr key={row.ip}>
-                    <td className="mono">{row.ip}</td>
-                    <td className="mono">{row.packets}</td>
+                {incidents.map((incident) => (
+                  <tr key={incident.id}>
+                    <td className="mono">
+                      INC-{incident.id}
+                    </td>
+
                     <td>
-                      <div className="ip-bar-cell">
-                        <span className="ip-pct">{row.pct}%</span>
-                        <div className="ip-bar-track">
-                          <div
-                            className="ip-bar-fill"
-                            style={{ width: `${row.pct * 3}%` }}
-                          />
-                        </div>
-                      </div>
+                      <span
+                        className={`severity-badge ${incident.severity.toLowerCase()}`}
+                      >
+                        {incident.severity}
+                      </span>
+                    </td>
+
+                    <td>{incident.type}</td>
+
+                    <td className="mono">
+                      {incident.source}
+                    </td>
+
+                    <td className="mono">
+                      {incident.time}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
+
+        <div className="live-feed-panel">
+          <div className="panel-header">
+            <div>
+              <h3>Live Feed</h3>
+              <span>Incoming network events</span>
+            </div>
+          </div>
+
+          <div className="table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Source</th>
+                  <th>Destination</th>
+                  <th>Protocol</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {feedEvents.map((event, index) => (
+                  <tr key={`${event.time}-${event.source}-${index}`}>
+                    <td className="mono">{event.time}</td>
+
+                    <td className="mono">{event.source}</td>
+
+                    <td className="mono">{event.destination}</td>
+
+                    <td>
+                      <span className="protocol-badge">
+                        {event.protocol}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span
+                        className={`feed-status ${event.status.toLowerCase()}`}
+                      >
+                        {event.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
       </div>
-
-      <section className="dashboard-panel live-network-feed">
-        <div className="panel-header">
-          <div>
-            <h2>Live Network Feed</h2>
-            <p>{connected ? "Streaming from /ws/live" : "Waiting for WebSocket…"}</p>
-          </div>
-          <button
-            className="pause-button"
-            type="button"
-            onClick={() => setPaused((value) => !value)}
-          >
-            {paused ? <Play size={11} fill="currentColor" /> : <Pause size={11} fill="currentColor" />}
-            {paused ? "Resume" : "Pause"}
-          </button>
-        </div>
-
-        <div className="event-table-wrapper">
-          <table className="event-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Source IP</th>
-                <th>Destination IP</th>
-                <th>Protocol</th>
-                <th>Size</th>
-                <th>Info</th>
-              </tr>
-            </thead>
-            <tbody>
-              {liveFeedEvents.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="feed-info">
-                    {paused ? "Feed paused" : "Waiting for flow updates…"}
-                  </td>
-                </tr>
-              ) : (
-                liveFeedEvents.map((ev) => {
-                  const proto = protocolColors[ev.protocol] ?? { bg: "#f1f5f9", color: "#475569" };
-                  return (
-                    <tr key={ev.id}>
-                      <td className="mono">{ev.time}</td>
-                      <td className="mono">{ev.source}</td>
-                      <td className="mono">{ev.destination}</td>
-                      <td>
-                        <span
-                          className="proto-badge"
-                          style={{ background: proto.bg, color: proto.color }}
-                        >
-                          {ev.protocol}
-                        </span>
-                      </td>
-                      <td className="mono">{ev.size}</td>
-                      <td className="feed-info">{ev.info}</td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-    </div>
+    </section>
   );
 }
