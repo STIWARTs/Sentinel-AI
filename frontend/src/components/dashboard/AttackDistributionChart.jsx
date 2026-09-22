@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { apiGet } from "../api/client";
 import {
   ResponsiveContainer,
   PieChart,
@@ -6,24 +8,17 @@ import {
   Tooltip,
 } from "recharts";
 
-const data = [
-  { name: "DDoS", value: 32 },
-  { name: "Port Scan", value: 24 },
-  { name: "Brute Force", value: 18 },
-  { name: "SQL Injection", value: 12 },
-  { name: "Malware", value: 8 },
-  { name: "Others", value: 6 },
-];
-
+// Static colors for chart slices
 const COLORS = [
-  "#dc2626",  // red — DDoS
-  "#f97316",  // orange — Port Scan
-  "#eab308",  // yellow — Brute Force
-  "#16a34a",  // green — SQL Injection
-  "#7c3aed",  // purple — Malware
-  "#94a3b8",  // grey — Others
+  "#dc2626", // red — DDoS
+  "#f97316", // orange — Port Scan
+  "#eab308", // yellow — Brute Force
+  "#16a34a", // green — SQL Injection
+  "#7c3aed", // purple — Malware
+  "#94a3b8", // grey — Others
 ];
 
+// Tooltip component – unchanged
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     return (
@@ -39,7 +34,38 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 export default function AttackDistributionChart() {
-  const total = data.reduce((sum, d) => sum + d.value, 0);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    apiGet("/api/dashboard/attack-distribution")
+      .then((resp) => {
+        // Expected format: { "DDoS": 31, "PortScan": 24, ... }
+        const entries = Object.entries(resp).map(([name, value]) => ({ name, value }));
+        setData(entries);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch attack distribution:", err);
+        setError(err);
+        setLoading(false);
+      });
+  }, []);
+
+  // Fallback static data while loading/error
+  const fallbackData = [
+    { name: "DDoS", value: 0 },
+    { name: "Port Scan", value: 0 },
+    { name: "Brute Force", value: 0 },
+    { name: "SQL Injection", value: 0 },
+    { name: "Malware", value: 0 },
+    { name: "Others", value: 0 },
+  ];
+
+  const chartData = loading || error ? fallbackData : data;
+
+  const total = chartData.reduce((sum, d) => sum + d.value, 0);
 
   return (
     <section className="dashboard-panel attack-distribution">
@@ -55,7 +81,7 @@ export default function AttackDistributionChart() {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data}
+                data={chartData}
                 dataKey="value"
                 nameKey="name"
                 innerRadius="55%"
@@ -64,11 +90,8 @@ export default function AttackDistributionChart() {
                 startAngle={90}
                 endAngle={-270}
               >
-                {data.map((entry, index) => (
-                  <Cell
-                    key={entry.name}
-                    fill={COLORS[index]}
-                  />
+                {chartData.map((entry, index) => (
+                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
 
@@ -78,20 +101,16 @@ export default function AttackDistributionChart() {
         </div>
 
         <div className="distribution-list">
-          {data.map((item, index) => (
+          {chartData.map((item, index) => (
             <div key={item.name} className="distribution-item">
               <span
                 className="distribution-marker"
-                style={{ background: COLORS[index] }}
+                style={{ background: COLORS[index % COLORS.length] }}
               />
 
-              <span className="distribution-name">
-                {item.name}
-              </span>
+              <span className="distribution-name">{item.name}</span>
 
-              <span className="distribution-value">
-                {item.value}%
-              </span>
+              <span className="distribution-value">{item.value}%</span>
             </div>
           ))}
         </div>

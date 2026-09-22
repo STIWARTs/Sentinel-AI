@@ -1,67 +1,96 @@
+import { useEffect, useState } from "react";
+import { apiGet } from "../api/client";
 import {
   Activity,
   ShieldAlert,
-  Monitor,
   ShieldCheck,
+  Monitor,
   TrendingUp,
   TrendingDown,
   Minus,
 } from "lucide-react";
 
-const summaryData = [
-  {
-    label: "Active Connections",
-    value: "128",
-    trend: "+12%",
-    trendDir: "up",
-    trendLabel: "vs last hour",
-    icon: Activity,
-    iconColor: "#2563eb",
-    iconBg: "#eff6ff",
-  },
-  {
-    label: "Detected Threats",
-    value: "24",
-    trend: "+8%",
-    trendDir: "up",
-    trendLabel: "vs last hour",
-    icon: ShieldAlert,
-    iconColor: "#dc2626",
-    iconBg: "#fef2f2",
-  },
-  {
-    label: "Active Devices",
-    value: "18",
-    trend: "0%",
-    trendDir: "neutral",
-    trendLabel: "vs last hour",
-    icon: Monitor,
-    iconColor: "#2563eb",
-    iconBg: "#eff6ff",
-  },
-  {
-    label: "Blocked Attacks",
-    value: "6",
-    trend: "+50%",
-    trendDir: "up",
-    trendLabel: "vs last hour",
-    icon: ShieldCheck,
-    iconColor: "#16a34a",
-    iconBg: "#f0fdf4",
-  },
-];
-
 export default function SummaryCards() {
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    apiGet("/api/dashboard/summary")
+      .then((data) => {
+        setSummary(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch dashboard summary:", err);
+        setError(err);
+        setLoading(false);
+      });
+  }, []);
+
+  // Fallback static data while loading or on error
+  const fallbackData = [
+    { label: "Active Connections", value: "-", trend: "-", trendDir: "neutral", trendLabel: "", icon: Activity, iconColor: "#2563eb", iconBg: "#eff6ff" },
+    { label: "Detected Threats", value: "-", trend: "-", trendDir: "neutral", trendLabel: "", icon: ShieldAlert, iconColor: "#dc2626", iconBg: "#fef2f2" },
+    { label: "Active Devices", value: "-", trend: "-", trendDir: "neutral", trendLabel: "", icon: Monitor, iconColor: "#2563eb", iconBg: "#eff6ff" },
+    { label: "Blocked Attacks", value: "-", trend: "-", trendDir: "neutral", trendLabel: "", icon: ShieldCheck, iconColor: "#16a34a", iconBg: "#f0fdf4" },
+  ];
+
+  const data = summary
+    ? [
+        {
+          label: "Today's Alerts",
+          value: summary.todays_alerts?.toString() ?? "-",
+          trend: "",
+          trendDir: "neutral",
+          trendLabel: "",
+          icon: Activity,
+          iconColor: "#2563eb",
+          iconBg: "#eff6ff",
+        },
+        {
+          label: "Critical Threats",
+          value: summary.critical_threats?.toString() ?? "-",
+          trend: "",
+          trendDir: "neutral",
+          trendLabel: "",
+          icon: ShieldAlert,
+          iconColor: "#dc2626",
+          iconBg: "#fef2f2",
+        },
+        {
+          label: "Monitored Devices",
+          value: "—",
+          trend: "",
+          trendDir: "neutral",
+          trendLabel: "",
+          icon: Monitor,
+          iconColor: "#2563eb",
+          iconBg: "#eff6ff",
+        },
+        {
+          label: "Blocked Attacks",
+          value: summary.blocked_attacks?.toString() ?? "-",
+          trend: "",
+          trendDir: "neutral",
+          trendLabel: "",
+          icon: ShieldCheck,
+          iconColor: "#16a34a",
+          iconBg: "#f0fdf4",
+        },
+      ]
+    : fallbackData;
+
   return (
     <section className="summary-grid">
-      {summaryData.map((item) => {
+      {data.map((item) => {
         const Icon = item.icon;
         const TrendIcon =
           item.trendDir === "up"
             ? TrendingUp
             : item.trendDir === "down"
-              ? TrendingDown
-              : Minus;
+            ? TrendingDown
+            : Minus;
 
         return (
           <div key={item.label} className="summary-item">
@@ -79,7 +108,13 @@ export default function SummaryCards() {
 
             <div className="summary-footer">
               <span
-                className={`summary-trend ${item.trendDir === "up" ? "trend-up" : item.trendDir === "down" ? "trend-down" : "trend-neutral"}`}
+                className={`summary-trend ${
+                  item.trendDir === "up"
+                    ? "trend-up"
+                    : item.trendDir === "down"
+                    ? "trend-down"
+                    : "trend-neutral"
+                }`}
               >
                 <TrendIcon size={11} />
                 {item.trend}
