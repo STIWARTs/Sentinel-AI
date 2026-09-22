@@ -1,0 +1,14 @@
+{
+  "id": 17,
+  "title": "PortScan -> BruteForce from 192.168.1.101",
+  "src_ip": "192.168.1.101",
+  "attack_chain": "PortScan -> BruteForce",
+  "mitre_technique": "T1110",
+  "risk_score": 30,
+  "severity": "Medium",
+  "status": "Open",
+  "assigned_to": null,
+  "ai_explanation": "A system (192.168.1.101) first scanned our network to find open doors, then tried to guess usernames and passwords to gain access. This is a Brute Force attack (MITRE T1110). The risk is moderate (30/100), indicating a persistent attempt at unauthorized entry.\n\n**Next Steps:**\n1.  **Block** source IP 192.168.1.101 at the firewall.\n2.  **Check logs** on targeted systems for any successful logins or unusual activity from that IP.\n3.  **Review** account lockout policies and password strength for affected services.",
+  "created_at": "2026-09-22T20:31:25.310778",
+  "updated_at": "2026-09-22T20:44:15.031013"
+}
