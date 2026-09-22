@@ -1,34 +1,30 @@
+import { useWebSocket } from "../../hooks/useWebSocket";
+import { WS_URL } from "../../api/client";
+
 export default function StatusBar() {
-  const now = new Date();
-  const timeStr = now.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  const { connected } = useWebSocket(`${WS_URL}/ws/live`);
 
   return (
-    <footer className="statusbar" id="app-statusbar">
-      <div className="statusbar-left">
-        <span className="status-indicator connected">
-          <span className="status-pip" />
+    <footer className="status-bar">
+      <div className="status-bar-left">
+        <span className="status-item">
+          <span className="status-dot connected" />
           Capture Agent: Connected
         </span>
-        <span className="status-indicator connected">
-          <span className="status-pip" />
-          Backend: Connected
+
+        <span className="status-item">
+          <span className="status-dot connected" />
+          Backend: {connected ? "Connected" : "Disconnected"}
         </span>
-        <span className="status-indicator connected">
-          <span className="status-pip" />
+
+        <span className="status-item">
+          <span className="status-dot connected" />
           Database: Connected
         </span>
       </div>
 
-      <div className="statusbar-right">
-        <span className="status-pps">2.4k packets/sec</span>
-        <span className="status-time">{timeStr}</span>
+      <div className="status-bar-right">
+        <span>2.4k packets/sec</span>
       </div>
     </footer>
   );

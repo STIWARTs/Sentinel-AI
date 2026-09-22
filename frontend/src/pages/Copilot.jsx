@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bot,
   Send,
@@ -7,6 +7,7 @@ import {
   Activity,
   FileText,
 } from "lucide-react";
+import { apiGet, apiPost } from "../api/client";
 
 const suggestions = [
   {
@@ -31,35 +32,100 @@ const suggestions = [
   },
 ];
 
+function toIncidentContext(incident) {
+  if (!incident) return {};
+  return {
+    id: incident.id,
+    title: incident.title,
+    attack_chain: incident.attack_chain,
+    src_ip: incident.src_ip,
+    risk_score: incident.risk_score,
+    severity: incident.severity,
+    status: incident.status,
+    mitre_technique: incident.mitre_technique,
+    ai_explanation: incident.ai_explanation,
+  };
+}
+
+function incidentLabel(incident) {
+  const chain = incident.attack_chain || incident.title || `Incident ${incident.id}`;
+  return `#${incident.id} · ${chain}`;
+}
+
 export default function Copilot() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [pending, setPending] = useState(false);
+  const [incidents, setIncidents] = useState([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [summary, setSummary] = useState(null);
 
-  const sendMessage = (message = input) => {
+  useEffect(() => {
+    apiGet("/api/incidents")
+      .then((rows) => {
+        if (!Array.isArray(rows)) return;
+        setIncidents(rows);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch incidents for copilot:", err);
+      });
+
+    apiGet("/api/dashboard/summary")
+      .then(setSummary)
+      .catch((err) => {
+        console.error("Failed to fetch dashboard summary for copilot:", err);
+      });
+  }, []);
+
+  const selectedIncident = incidents.find(
+    (incident) => String(incident.id) === String(selectedId)
+  );
+
+  const sendMessage = async (message = input) => {
     const text = message.trim();
-
-    if (!text) return;
+    if (!text || pending) return;
 
     setMessages((current) => [
       ...current,
-      {
-        role: "user",
-        content: text,
-      },
-      {
-        role: "assistant",
-        content:
-          "I can analyze Sentinel events, incidents, network activity, and threat indicators. Backend intelligence will be connected here once the API is available.",
-      },
+      { role: "user", content: text },
     ]);
-
     setInput("");
+    setPending(true);
+
+    try {
+      const data = await apiPost("/api/copilot/ask", {
+        question: text,
+        incident_context: toIncidentContext(selectedIncident),
+      });
+      const answer = data?.answer?.trim()
+        || "The copilot returned an empty answer.";
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", content: answer },
+      ]);
+    } catch (err) {
+      console.error("Copilot ask failed:", err);
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content:
+            "Copilot is unavailable right now. Confirm you are signed in as an analyst and that GEMINI_API_KEY is configured.",
+        },
+      ]);
+    } finally {
+      setPending(false);
+    }
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
     sendMessage();
   };
+
+  const openIncidents = incidents.filter(
+    (incident) => incident.status && incident.status !== "Resolved"
+  ).length;
 
   return (
     <div className="copilot-page">
@@ -74,7 +140,7 @@ export default function Copilot() {
 
         <div className="copilot-status">
           <span />
-          Ready
+          {pending ? "Thinking…" : "Ready"}
         </div>
       </div>
 
@@ -104,6 +170,8 @@ export default function Copilot() {
                     <button
                       key={suggestion.title}
                       className="copilot-suggestion"
+                      type="button"
+                      disabled={pending}
                       onClick={() => sendMessage(suggestion.prompt)}
                     >
                       <Icon size={17} />
@@ -146,6 +214,18 @@ export default function Copilot() {
                 </div>
               ))}
 
+              {pending && (
+                <div className="copilot-message assistant">
+                  <div className="message-avatar">
+                    <Bot size={15} />
+                  </div>
+                  <div className="message-content">
+                    <span className="message-label">Sentinel AI</span>
+                    <p>Analyzing…</p>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 
@@ -160,12 +240,13 @@ export default function Copilot() {
               onChange={(event) =>
                 setInput(event.target.value)
               }
+              disabled={pending}
             />
 
             <button
               type="submit"
               aria-label="Send message"
-              disabled={!input.trim()}
+              disabled={pending || !input.trim()}
             >
               <Send size={17} />
             </button>
@@ -177,7 +258,30 @@ export default function Copilot() {
 
           <div className="copilot-context-header">
             <h2>Investigation Context</h2>
-            <span>Live</span>
+            <span>{selectedIncident ? "Incident" : "General"}</span>
+          </div>
+
+          <div className="context-section">
+            <span className="context-label">
+              Selected incident
+            </span>
+            <select
+              className="filter-select copilot-incident-select"
+              value={selectedId}
+              onChange={(event) => setSelectedId(event.target.value)}
+            >
+              <option value="">None (general question)</option>
+              {incidents.map((incident) => (
+                <option key={incident.id} value={incident.id}>
+                  {incidentLabel(incident)}
+                </option>
+              ))}
+            </select>
+            <p>
+              {selectedIncident
+                ? `${selectedIncident.src_ip ?? "Unknown IP"} · risk ${selectedIncident.risk_score ?? "—"}`
+                : "Questions will be asked without a specific incident."}
+            </p>
           </div>
 
           <div className="context-section">
@@ -185,7 +289,7 @@ export default function Copilot() {
               Active incidents
             </span>
 
-            <strong>5</strong>
+            <strong>{openIncidents || incidents.length}</strong>
 
             <p>
               Incidents currently requiring analyst attention.
@@ -197,22 +301,12 @@ export default function Copilot() {
               Critical threats
             </span>
 
-            <strong className="critical-value">2</strong>
+            <strong className="critical-value">
+              {summary?.critical_threats ?? "—"}
+            </strong>
 
             <p>
               High-priority threats detected recently.
-            </p>
-          </div>
-
-          <div className="context-section">
-            <span className="context-label">
-              Network activity
-            </span>
-
-            <strong>1,284</strong>
-
-            <p>
-              Packets per second currently being monitored.
             </p>
           </div>
 
@@ -220,8 +314,8 @@ export default function Copilot() {
             <Bot size={15} />
 
             <span>
-              AI responses will use live Sentinel data
-              once the backend integration is connected.
+              Answers use the selected incident as context, or a general
+              question when none is selected.
             </span>
           </div>
 

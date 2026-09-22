@@ -3,14 +3,14 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000
 // Retrieve JWT token from localStorage
 const getToken = () => localStorage.getItem('sentinel_token');
 
-const authHeaders = {
+const authHeaders = () => ({
   Authorization: `Bearer ${getToken()}`,
-};
+});
 
 export async function apiGet(path) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
-      ...authHeaders,
+      ...authHeaders(),
     },
   });
   if (!response.ok) {
@@ -24,7 +24,7 @@ export async function apiPost(path, body) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...authHeaders,
+      ...authHeaders(),
     },
     body: JSON.stringify(body),
   });
@@ -39,7 +39,7 @@ export async function apiPatch(path, body) {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      ...authHeaders,
+      ...authHeaders(),
     },
     body: JSON.stringify(body),
   });

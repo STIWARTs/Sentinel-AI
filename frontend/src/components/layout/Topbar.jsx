@@ -1,4 +1,4 @@
-import { Square } from "lucide-react";
+import { CircleStop } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 const pageMeta = {
@@ -26,40 +26,46 @@ const pageMeta = {
 
 export default function Topbar() {
   const { pathname } = useLocation();
-  const meta = pageMeta[pathname] ?? { title: "Sentinel AI", subtitle: "" };
 
-  // Static "since" date for demo
-  const since = "12 Aug 2025, 10:24";
+  const meta = pageMeta[pathname] ?? {
+    title: "Sentinel AI",
+    subtitle: "",
+  };
 
   return (
     <header className="topbar">
-
       <div className="topbar-left">
-        <h2 className="topbar-title">
-          {meta.title}
-        </h2>
+        <h2 className="topbar-title">{meta.title}</h2>
+
         <p className="topbar-subtitle">
           {meta.subtitle}
         </p>
       </div>
 
       <div className="topbar-right">
-
-        {/* Monitoring status */}
         <div className="monitoring-status">
           <span className="monitoring-dot" />
+
           <div className="monitoring-info">
-            <span className="monitoring-label">Monitoring Active</span>
-            <span className="monitoring-since">Since {since}</span>
+            <span className="monitoring-label">
+              Monitoring Status
+            </span>
+
+            <span className="monitoring-since">
+              Capture agent status unavailable
+            </span>
           </div>
         </div>
 
-        {/* Stop Capture */}
-        <button className="stop-capture-btn" id="stop-capture-button">
-          <Square size={12} fill="currentColor" />
+        <button
+          className="stop-capture-btn"
+          type="button"
+          disabled
+          title="Capture control will be enabled when the backend exposes the capture API"
+        >
+          <CircleStop size={13} />
           Stop Capture
         </button>
-
       </div>
     </header>
   );

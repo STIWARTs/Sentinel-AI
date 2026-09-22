@@ -1,64 +1,16 @@
 import {
   Activity,
-  ArrowDown,
-  ArrowUp,
+  Globe,
   Network as NetworkIcon,
-  Radio,
+  Server,
+  ShieldCheck,
 } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
-const trafficData = [
-  { time: "14:00", inbound: 42, outbound: 28 },
-  { time: "14:05", inbound: 51, outbound: 31 },
-  { time: "14:10", inbound: 47, outbound: 35 },
-  { time: "14:15", inbound: 63, outbound: 39 },
-  { time: "14:20", inbound: 58, outbound: 42 },
-  { time: "14:25", inbound: 72, outbound: 48 },
-  { time: "14:30", inbound: 68, outbound: 44 },
-  { time: "14:35", inbound: 81, outbound: 52 },
-];
-
-const networkEvents = [
-  {
-    time: "14:35:12",
-    type: "TCP Connection",
-    source: "10.0.0.42",
-    destination: "192.168.1.10:443",
-    protocol: "TCP",
-    status: "Allowed",
-  },
-  {
-    time: "14:34:48",
-    type: "DNS Request",
-    source: "10.0.0.31",
-    destination: "8.8.8.8:53",
-    protocol: "UDP",
-    status: "Allowed",
-  },
-  {
-    time: "14:33:21",
-    type: "Connection Attempt",
-    source: "10.0.0.17",
-    destination: "192.168.1.20:22",
-    protocol: "TCP",
-    status: "Flagged",
-  },
-  {
-    time: "14:32:56",
-    type: "HTTP Request",
-    source: "10.0.0.56",
-    destination: "172.217.16.14:443",
-    protocol: "TCP",
-    status: "Allowed",
-  },
+const protocolData = [
+  { protocol: "TCP", value: 0 },
+  { protocol: "UDP", value: 0 },
+  { protocol: "DNS", value: 0 },
+  { protocol: "HTTP", value: 0 },
 ];
 
 export default function Network() {
@@ -67,175 +19,149 @@ export default function Network() {
 
       <div className="page-heading">
         <div>
-          <h1>Network</h1>
+          <h1>Network Monitoring</h1>
           <p>
-            Real-time network traffic and connection monitoring
+            Monitor network activity, connections, and traffic events.
           </p>
         </div>
 
-        <div className="network-live-indicator">
-          <span />
-          Live monitoring
+        <div className="network-live-status">
+          <span className="network-status-dot" />
+          Monitoring
         </div>
       </div>
 
-      <div className="network-summary-grid">
+      <section className="network-summary-grid">
 
         <div className="network-summary-card">
           <div className="network-summary-icon">
-            <Activity size={18} />
+            <Activity size={19} />
           </div>
 
           <div>
-            <span>Packets / sec</span>
-            <strong>1,284</strong>
-          </div>
-        </div>
-
-        <div className="network-summary-card">
-          <div className="network-summary-icon">
-            <NetworkIcon size={18} />
-          </div>
-
-          <div>
-            <span>Active connections</span>
-            <strong>342</strong>
+            <span>Network Traffic</span>
+            <strong>—</strong>
+            <small>Awaiting live data</small>
           </div>
         </div>
 
         <div className="network-summary-card">
           <div className="network-summary-icon">
-            <ArrowDown size={18} />
+            <NetworkIcon size={19} />
           </div>
 
           <div>
-            <span>Inbound traffic</span>
-            <strong>68.4 MB/s</strong>
+            <span>Active Connections</span>
+            <strong>—</strong>
+            <small>Awaiting live data</small>
           </div>
         </div>
 
         <div className="network-summary-card">
           <div className="network-summary-icon">
-            <ArrowUp size={18} />
+            <Server size={19} />
           </div>
 
           <div>
-            <span>Outbound traffic</span>
-            <strong>44.2 MB/s</strong>
+            <span>Monitored Devices</span>
+            <strong>—</strong>
+            <small>Awaiting live data</small>
           </div>
         </div>
 
-      </div>
+        <div className="network-summary-card">
+          <div className="network-summary-icon">
+            <ShieldCheck size={19} />
+          </div>
 
-      <section className="dashboard-panel network-chart-panel">
-
-        <div className="panel-header">
           <div>
-            <h2>Traffic Activity</h2>
-            <p>Inbound and outbound traffic over time</p>
+            <span>Network Status</span>
+            <strong>Normal</strong>
+            <small>No active network alerts</small>
           </div>
-
-          <Radio size={17} />
-        </div>
-
-        <div className="network-chart">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={trafficData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="var(--border-color)"
-                vertical={false}
-              />
-
-              <XAxis
-                dataKey="time"
-                tick={{
-                  fill: "var(--text-muted)",
-                  fontSize: 11,
-                }}
-                axisLine={false}
-                tickLine={false}
-              />
-
-              <YAxis
-                tick={{
-                  fill: "var(--text-muted)",
-                  fontSize: 11,
-                }}
-                axisLine={false}
-                tickLine={false}
-              />
-
-              <Tooltip />
-
-              <Area
-                type="linear"
-                dataKey="inbound"
-                stroke="var(--primary)"
-                fill="none"
-                strokeWidth={2}
-              />
-
-              <Area
-                type="linear"
-                dataKey="outbound"
-                stroke="var(--text-secondary)"
-                fill="none"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
         </div>
 
       </section>
 
-      <section className="dashboard-panel">
+      <section className="network-main-grid">
 
-        <div className="panel-header">
-          <div>
-            <h2>Recent Network Events</h2>
-            <p>Latest observed network activity</p>
+        <div className="dashboard-panel network-traffic-panel">
+          <div className="panel-header">
+            <div>
+              <h2>Traffic Activity</h2>
+              <span>Recent network traffic</span>
+            </div>
+          </div>
+
+          <div className="network-empty-state">
+            <Activity size={25} />
+
+            <h3>Waiting for network data</h3>
+
+            <p>
+              Live traffic information will appear here when the
+              network monitoring pipeline is connected.
+            </p>
           </div>
         </div>
 
-        <div className="network-table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Event</th>
-                <th>Source</th>
-                <th>Destination</th>
-                <th>Protocol</th>
-                <th>Status</th>
-              </tr>
-            </thead>
+        <div className="dashboard-panel">
+          <div className="panel-header">
+            <div>
+              <h2>Protocol Activity</h2>
+              <span>Detected network protocols</span>
+            </div>
+          </div>
 
-            <tbody>
-              {networkEvents.map((event) => (
-                <tr key={`${event.time}-${event.source}`}>
-                  <td>{event.time}</td>
-                  <td>{event.type}</td>
-                  <td>{event.source}</td>
-                  <td>{event.destination}</td>
-                  <td>{event.protocol}</td>
-                  <td>
-                    <span
-                      className={
-                        event.status === "Flagged"
-                          ? "network-status flagged"
-                          : "network-status"
-                      }
-                    >
-                      {event.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="protocol-list">
+            {protocolData.map((item) => (
+              <div
+                className="protocol-row"
+                key={item.protocol}
+              >
+                <span className="protocol-name">
+                  {item.protocol}
+                </span>
+
+                <div className="protocol-bar">
+                  <div
+                    className="protocol-bar-fill"
+                    style={{ width: `${item.value}%` }}
+                  />
+                </div>
+
+                <span className="protocol-value">
+                  —
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
+      </section>
+
+      <section className="dashboard-panel network-connections-panel">
+        <div className="panel-header">
+          <div>
+            <h2>Active Connections</h2>
+            <span>
+              Current network sessions observed by Sentinel
+            </span>
+          </div>
+
+          <Globe size={18} />
+        </div>
+
+        <div className="network-empty-state compact">
+          <NetworkIcon size={22} />
+
+          <h3>No connection data available</h3>
+
+          <p>
+            Connection records will appear here once the capture
+            agent is providing network telemetry.
+          </p>
+        </div>
       </section>
 
     </div>

@@ -1,63 +1,48 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import IncidentList from "../components/incidents/IncidentList";
+import { apiGet } from "../api/client";
 
-export const incidents = [
-  {
-    id: "INC-1042",
-    severity: "Critical",
-    type: "DDoS Attack",
-    source: "192.168.1.25",
-    target: "192.168.1.1",
-    detected: "14:32:08",
-    risk: 92,
-    status: "Open",
-  },
-  {
-    id: "INC-1041",
-    severity: "High",
-    type: "Port Scan",
-    source: "10.0.0.42",
-    target: "Internal Network",
-    detected: "14:29:51",
-    risk: 81,
-    status: "Investigating",
-  },
-  {
-    id: "INC-1040",
-    severity: "High",
-    type: "Brute Force",
-    source: "10.0.0.17",
-    target: "10.0.0.8",
-    detected: "14:27:14",
-    risk: 76,
-    status: "Open",
-  },
-  {
-    id: "INC-1039",
-    severity: "Medium",
-    type: "Suspicious DNS",
-    source: "10.0.0.31",
-    target: "DNS Server",
-    detected: "14:21:43",
-    risk: 54,
-    status: "Investigating",
-  },
-  {
-    id: "INC-1038",
-    severity: "Low",
-    type: "Unusual Traffic",
-    source: "10.0.0.56",
-    target: "External",
-    detected: "14:18:02",
-    risk: 32,
-    status: "Resolved",
-  },
-];
+function formatDetected(iso) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return String(iso);
+  return date.toLocaleTimeString([], { hour12: false });
+}
+
+export function mapIncident(inc) {
+  const status = inc.status === "In Progress" ? "Investigating" : inc.status;
+  return {
+    id: inc.id,
+    severity: inc.severity ?? "Low",
+    type: inc.attack_chain ?? inc.title ?? "Unknown",
+    source: inc.src_ip ?? "—",
+    target: "—",
+    detected: formatDetected(inc.created_at),
+    risk: inc.risk_score ?? 0,
+    status: status ?? "Open",
+  };
+}
 
 export default function Incidents() {
+  const [incidents, setIncidents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [severity, setSeverity] = useState("All");
   const [status, setStatus] = useState("All");
+
+  useEffect(() => {
+    apiGet("/api/incidents")
+      .then((rows) => {
+        setIncidents(Array.isArray(rows) ? rows.map(mapIncident) : []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch incidents:", err);
+        setError(err);
+        setLoading(false);
+      });
+  }, []);
 
   const filteredIncidents = useMemo(() => {
     const query = search.toLowerCase().trim();
@@ -65,7 +50,7 @@ export default function Incidents() {
     return incidents.filter((incident) => {
       const matchesSearch =
         !query ||
-        incident.id.toLowerCase().includes(query) ||
+        String(incident.id).toLowerCase().includes(query) ||
         incident.type.toLowerCase().includes(query) ||
         incident.source.toLowerCase().includes(query) ||
         incident.target.toLowerCase().includes(query);
@@ -84,7 +69,7 @@ export default function Incidents() {
         matchesStatus
       );
     });
-  }, [search, severity, status]);
+  }, [incidents, search, severity, status]);
 
   return (
     <div className="incidents-page">
@@ -99,7 +84,11 @@ export default function Incidents() {
         </div>
 
         <div className="incident-count">
-          {filteredIncidents.length} of {incidents.length} incidents
+          {loading
+            ? "Loading…"
+            : error
+              ? "Unable to load incidents"
+              : `${filteredIncidents.length} of ${incidents.length} incidents`}
         </div>
       </div>
 
