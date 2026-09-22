@@ -29,6 +29,33 @@ export default function Network() {
     [events],
   );
   const totalBytes = events.reduce((sum, event) => sum + (Number(event.bytes) || 0), 0);
+  const connectionRows = useMemo(() => {
+    const grouped = new Map();
+    events.forEach((event) => {
+      if (!event.src_ip) return;
+      const current = grouped.get(event.src_ip) || {
+        source: event.src_ip,
+        events: 0,
+        lastSeen: event.timestamp,
+        prediction: event.prediction,
+      };
+      current.events += 1;
+      if (new Date(event.timestamp) > new Date(current.lastSeen)) {
+        current.lastSeen = event.timestamp;
+        current.prediction = event.prediction;
+      }
+      grouped.set(event.src_ip, current);
+    });
+    return Array.from(grouped.values()).sort((a, b) => b.events - a.events);
+  }, [events]);
+
+  function formatTime(value) {
+    if (!value) return "-";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? String(value)
+      : date.toLocaleTimeString([], { hour12: false });
+  }
 
   return (
     <div className="network-page">
@@ -68,8 +95,8 @@ export default function Network() {
 
           <div>
             <span>Active Connections</span>
-            <strong>{events.length || "—"}</strong>
-            <small>{events.length ? "Recent flow events" : "Awaiting live data"}</small>
+            <strong>{connectionRows.length || "—"}</strong>
+            <small>{connectionRows.length ? "Recent source connections" : "Awaiting live data"}</small>
           </div>
         </div>
 
@@ -109,14 +136,29 @@ export default function Network() {
             </div>
           </div>
 
-          <div className="network-empty-state">
-            <Activity size={25} />
-
-            <h3>Waiting for network data</h3>
-
-            <p>
-              {events.length ? `${events.length} recent flow events received.` : "Live traffic information will appear here when the network monitoring pipeline is connected."}
-            </p>
+          <div className="network-table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Source IP</th>
+                  <th>Prediction</th>
+                  <th>Risk</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.length ? events.slice(0, 10).map((event, index) => (
+                  <tr key={`${event.id || event.timestamp}-${index}`}>
+                    <td>{formatTime(event.timestamp)}</td>
+                    <td>{event.src_ip || "-"}</td>
+                    <td>{event.prediction || "-"}</td>
+                    <td>{event.risk_score ?? "-"}</td>
+                  </tr>
+                )) : (
+                  <tr><td colSpan="4">No recent traffic data available.</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -167,15 +209,29 @@ export default function Network() {
           <Globe size={18} />
         </div>
 
-        <div className="network-empty-state compact">
-          <NetworkIcon size={22} />
-
-          <h3>No connection data available</h3>
-
-          <p>
-            Connection records will appear here once the capture
-            agent is providing network telemetry.
-          </p>
+        <div className="network-table-wrapper">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Source IP</th>
+                <th>Recent Events</th>
+                <th>Last Seen</th>
+                <th>Latest Prediction</th>
+              </tr>
+            </thead>
+            <tbody>
+              {connectionRows.length ? connectionRows.map((connection) => (
+                <tr key={connection.source}>
+                  <td>{connection.source}</td>
+                  <td>{connection.events}</td>
+                  <td>{formatTime(connection.lastSeen)}</td>
+                  <td>{connection.prediction || "-"}</td>
+                </tr>
+              )) : (
+                <tr><td colSpan="4">No recent source connections available.</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
 
