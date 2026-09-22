@@ -27,6 +27,25 @@ router = APIRouter(prefix="/api", tags=["ingest"])
 logger = logging.getLogger(__name__)
 
 
+async def _send_alerts_in_background(
+    incident_title: str,
+    severity: str,
+    src_ip: str,
+    explanation: str | None,
+) -> None:
+    """Send external alerts without holding the ingest request open."""
+    try:
+        await asyncio.to_thread(
+            send_incident_alert,
+            incident_title,
+            severity,
+            src_ip,
+            explanation or "No AI explanation was available.",
+        )
+    except Exception as exc:
+        logger.error(f"Background incident alert failed: {exc}")
+
+
 def _verify_agent_key(x_agent_key: str = Header(...)):
     """FastAPI dependency that validates the static agent API key header.
 
@@ -157,13 +176,14 @@ async def ingest_flow(data: FlowIngestRequest, db: Session = Depends(get_db)):
             "explanation": explanation,
         })
 
-        # 8. Fire alert notifications (email / Telegram stubs).
-        await asyncio.to_thread(
-            send_incident_alert,
+        # 8. Fire external notifications after returning the detection result.
+        asyncio.create_task(
+            _send_alerts_in_background(
             incident.title,
             severity,
             src_ip,
             explanation,
+            )
         )
 
         logger.info(f"Incident created: id={incident.id} chain={correlation_result['chain']} ip={src_ip}")

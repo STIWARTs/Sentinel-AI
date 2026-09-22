@@ -72,21 +72,21 @@ def sample_flows(flows: pd.DataFrame, limit: int, mix_classes: bool) -> pd.DataF
     return flows.head(limit)
 
 
-def build_payload(row: pd.Series, feature_names: list[str]) -> dict:
+def build_payload(row: pd.Series, feature_names: list[str], src_ip: str) -> dict:
     """Convert one dataset row into the JSON body /api/ingest expects.
 
     Column names are already the CICIDS2017 model names, which the predictor's
     normalize_features() passes through unchanged. The CICIDS CSVs carry no
     source IP column, so a placeholder is used.
     """
-    payload = {"src_ip": "192.168.1.100"}
+    payload = {"src_ip": src_ip}
     for name in feature_names:
         payload[name] = float(row[name])
     return payload
 
 
 def replay(csv_path: str, url: str, agent_key: str, limit: int,
-           delay_seconds: float, mix_classes: bool) -> None:
+           delay_seconds: float, mix_classes: bool, src_ip: str) -> None:
     """Main loop — load flows, then POST them one at a time to the backend."""
     feature_names = load_feature_names()
     flows = sample_flows(load_flows(csv_path, feature_names), limit, mix_classes)
@@ -96,7 +96,7 @@ def replay(csv_path: str, url: str, agent_key: str, limit: int,
     # Network calls to the backend can fail transiently, so each POST is wrapped
     # rather than aborting the whole replay on one dropped request.
     for index, (_, row) in enumerate(flows.iterrows(), start=1):
-        payload = build_payload(row, feature_names)
+        payload = build_payload(row, feature_names, src_ip)
         true_label = row.get("Label", "unknown")
         try:
             response = requests.post(
@@ -137,12 +137,14 @@ def main() -> None:
                         help="Seconds to wait between flows (0 for instant)")
     parser.add_argument("--mix", action="store_true",
                         help="Sample roughly equal rows per class (benign + attacks)")
+    parser.add_argument("--src-ip", default="192.168.1.100",
+                        help="Source IP to attach to replayed flows")
     args = parser.parse_args()
 
     if not args.agent_key:
         parser.error("No agent key given. Pass --agent-key or set AGENT_INGEST_KEY in capture-agent/.env")
 
-    replay(args.csv, args.url, args.agent_key, args.rows, args.delay, args.mix)
+    replay(args.csv, args.url, args.agent_key, args.rows, args.delay, args.mix, args.src_ip)
 
 
 if __name__ == "__main__":
