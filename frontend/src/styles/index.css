@@ -1038,6 +1038,15 @@ ol {
   background: var(--bg-hover);
 }
 
+@keyframes row-flash {
+  0% { background: #fef3c7; }
+  100% { background: transparent; }
+}
+
+.event-table tbody tr.row-flash {
+  animation: row-flash 1.6s ease-out;
+}
+
 .event-type {
   color: var(--text-primary) !important;
   font-weight: 600;
@@ -2056,6 +2065,69 @@ ol {
   font-weight: 600;
 }
 
+.detail-inline-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.incident-action-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 16px 8px;
+}
+
+.incident-action-input {
+  width: 100%;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: inherit;
+}
+
+.incident-action-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.action-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.action-log-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.action-log-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.action-log-row strong {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.action-log-row span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
 /* Actions */
 
 .incident-actions {
@@ -2781,6 +2853,12 @@ ol {
 
 .context-section strong.critical-value {
   color: var(--danger);
+}
+
+.copilot-incident-select {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 8px;
 }
 
 .context-section p {

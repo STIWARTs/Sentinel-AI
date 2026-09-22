@@ -29,7 +29,7 @@ export default function IncidentList({ incidents }) {
 
         <td>
           <span
-            className={`severity-badge severity-${incident.severity.toLowerCase()}`}
+            className={`severity-badge severity-${(incident.severity || "low").toLowerCase()}`}
           >
             {incident.severity}
           </span>

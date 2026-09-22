@@ -1,12 +1,109 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ShieldAlert, Clock, Activity } from "lucide-react";
-import { incidents } from "./Incidents";
+import { apiGet, apiPatch, apiPost } from "../api/client";
+
+const STATUS_OPTIONS = [
+  { value: "Open", label: "Open" },
+  { value: "In Progress", label: "Investigating" },
+  { value: "Resolved", label: "Resolved" },
+];
+
+function formatWhen(iso) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return String(iso);
+  return date.toLocaleString();
+}
+
+function displayStatus(status) {
+  if (status === "In Progress") return "Investigating";
+  return status || "Open";
+}
+
+function usernameFromToken() {
+  const token = localStorage.getItem("sentinel_token");
+  if (!token) return "analyst";
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.sub || "analyst";
+  } catch {
+    return "analyst";
+  }
+}
 
 export default function IncidentDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [incident, setIncident] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [statusBusy, setStatusBusy] = useState(false);
+  const [statusError, setStatusError] = useState(null);
+  const [actionText, setActionText] = useState("");
+  const [actions, setActions] = useState([]);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionError, setActionError] = useState(null);
 
-  const incident = incidents.find((item) => item.id === id);
+  useEffect(() => {
+    if (!id) return undefined;
+    setLoading(true);
+    setActions([]);
+    apiGet(`/api/incidents/${id}`)
+      .then((row) => {
+        setIncident(row);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch incident:", err);
+        setIncident(null);
+        setLoading(false);
+      });
+  }, [id]);
+
+  async function handleStatusChange(event) {
+    const status = event.target.value;
+    setStatusError(null);
+    setStatusBusy(true);
+    try {
+      const updated = await apiPatch(`/api/incidents/${id}/status`, { status });
+      setIncident(updated);
+    } catch (err) {
+      console.error("Failed to update incident status:", err);
+      setStatusError("Could not update status. Analyst role required.");
+    } finally {
+      setStatusBusy(false);
+    }
+  }
+
+  async function handleAddAction(event) {
+    event.preventDefault();
+    const action = actionText.trim();
+    if (!action) return;
+
+    setActionError(null);
+    setActionBusy(true);
+    try {
+      const created = await apiPost(`/api/incidents/${id}/actions`, {
+        action,
+        performed_by: usernameFromToken(),
+      });
+      setActions((prev) => [created, ...prev]);
+      setActionText("");
+    } catch (err) {
+      console.error("Failed to add incident action:", err);
+      setActionError("Could not add action. Analyst role required.");
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="empty-state">
+        <h2>Loading incident…</h2>
+      </div>
+    );
+  }
 
   if (!incident) {
     return (
@@ -25,6 +122,11 @@ export default function IncidentDetailPage() {
     );
   }
 
+  const severity = incident.severity ?? "Low";
+  const attackChain = incident.attack_chain ?? incident.title ?? "Unknown";
+  const risk = incident.risk_score ?? 0;
+  const source = incident.src_ip ?? "—";
+
   return (
     <div className="incident-detail-page">
 
@@ -39,28 +141,40 @@ export default function IncidentDetailPage() {
       <div className="incident-detail-header">
         <div>
           <div className="incident-detail-id">
-            {incident.id}
+            INC-{incident.id}
           </div>
 
-          <h1>{incident.type}</h1>
+          <h1>{incident.title || attackChain}</h1>
 
           <p>
-            Security incident detected by Sentinel AI
+            {attackChain}
           </p>
         </div>
 
         <div className="incident-header-actions">
           <span
-            className={`severity-badge severity-${incident.severity.toLowerCase()}`}
+            className={`severity-badge severity-${severity.toLowerCase()}`}
           >
-            {incident.severity}
+            {severity}
           </span>
 
-          <span className="status-badge">
-            {incident.status}
-          </span>
+          <select
+            className="filter-select"
+            value={incident.status ?? "Open"}
+            onChange={handleStatusChange}
+            disabled={statusBusy}
+            aria-label="Incident status"
+          >
+            {STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
+
+      {statusError && <p className="detail-inline-error">{statusError}</p>}
 
       <div className="incident-overview-grid">
 
@@ -70,7 +184,7 @@ export default function IncidentDetailPage() {
           </div>
 
           <div className="risk-score">
-            {incident.risk}
+            {risk}
             <span>/100</span>
           </div>
         </div>
@@ -81,17 +195,17 @@ export default function IncidentDetailPage() {
           </div>
 
           <div className="detail-card-value">
-            {incident.source}
+            {source}
           </div>
         </div>
 
         <div className="detail-card">
           <div className="detail-card-label">
-            Destination
+            MITRE Technique
           </div>
 
           <div className="detail-card-value">
-            {incident.target}
+            {incident.mitre_technique || "—"}
           </div>
         </div>
 
@@ -101,7 +215,7 @@ export default function IncidentDetailPage() {
           </div>
 
           <div className="detail-card-value">
-            {incident.detected}
+            {formatWhen(incident.created_at)}
           </div>
         </div>
 
@@ -128,7 +242,7 @@ export default function IncidentDetailPage() {
 
               <div>
                 <strong>Suspicious activity detected</strong>
-                <span>{incident.detected}</span>
+                <span>{formatWhen(incident.created_at)}</span>
               </div>
             </div>
 
@@ -138,9 +252,9 @@ export default function IncidentDetailPage() {
               </div>
 
               <div>
-                <strong>Threat classified</strong>
+                <strong>Attack chain classified</strong>
                 <span>
-                  {incident.type} · {incident.severity}
+                  {attackChain} · {severity}
                 </span>
               </div>
             </div>
@@ -153,7 +267,7 @@ export default function IncidentDetailPage() {
               <div>
                 <strong>Risk assessment completed</strong>
                 <span>
-                  Risk score: {incident.risk}/100
+                  Risk score: {risk}/100
                 </span>
               </div>
             </div>
@@ -173,22 +287,27 @@ export default function IncidentDetailPage() {
 
             <div className="evidence-row">
               <span>Source IP</span>
-              <strong>{incident.source}</strong>
+              <strong>{source}</strong>
             </div>
 
             <div className="evidence-row">
-              <span>Destination</span>
-              <strong>{incident.target}</strong>
+              <span>Attack chain</span>
+              <strong>{attackChain}</strong>
             </div>
 
             <div className="evidence-row">
-              <span>Detection type</span>
-              <strong>{incident.type}</strong>
+              <span>MITRE technique</span>
+              <strong>{incident.mitre_technique || "—"}</strong>
             </div>
 
             <div className="evidence-row">
               <span>Severity</span>
-              <strong>{incident.severity}</strong>
+              <strong>{severity}</strong>
+            </div>
+
+            <div className="evidence-row">
+              <span>Status</span>
+              <strong>{displayStatus(incident.status)}</strong>
             </div>
 
           </div>
@@ -206,35 +325,65 @@ export default function IncidentDetailPage() {
         </div>
 
         <div className="ai-analysis-content">
-          <p>
-            Sentinel AI identified this event as a{" "}
-            <strong>{incident.severity.toLowerCase()}</strong>{" "}
-            severity <strong>{incident.type}</strong> involving{" "}
-            <strong>{incident.source}</strong> and{" "}
-            <strong>{incident.target}</strong>.
-          </p>
-
-          <p>
-            The current risk score is{" "}
-            <strong>{incident.risk}/100</strong>. Further
-            investigation should consider the associated
-            network activity and supporting evidence.
-          </p>
+          {incident.ai_explanation ? (
+            <p>{incident.ai_explanation}</p>
+          ) : (
+            <p>
+              Sentinel AI identified this event as a{" "}
+              <strong>{severity.toLowerCase()}</strong>{" "}
+              severity <strong>{attackChain}</strong> involving{" "}
+              <strong>{source}</strong>. The current risk score is{" "}
+              <strong>{risk}/100</strong>.
+            </p>
+          )}
         </div>
 
       </section>
 
-      <div className="incident-actions">
+      <section className="dashboard-panel">
+        <div className="panel-header">
+          <div>
+            <h2>Analyst Actions</h2>
+            <p>Log response steps taken on this incident</p>
+          </div>
+        </div>
 
-        <button className="secondary-button">
-          Mark as investigating
-        </button>
+        <form className="incident-action-form" onSubmit={handleAddAction}>
+          <textarea
+            className="incident-action-input"
+            rows={3}
+            placeholder="Describe the action taken (e.g. blocked source IP at firewall)"
+            value={actionText}
+            onChange={(event) => setActionText(event.target.value)}
+          />
+          <div className="incident-actions">
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={actionBusy || !actionText.trim()}
+            >
+              {actionBusy ? "Saving…" : "Add Action"}
+            </button>
+          </div>
+        </form>
 
-        <button className="primary-button">
-          Resolve incident
-        </button>
+        {actionError && <p className="detail-inline-error">{actionError}</p>}
 
-      </div>
+        <div className="action-log">
+          {actions.length === 0 ? (
+            <p className="action-log-empty">No actions logged this session.</p>
+          ) : (
+            actions.map((entry) => (
+              <div className="action-log-row" key={entry.id}>
+                <strong>{entry.action}</strong>
+                <span>
+                  {entry.performed_by} · {formatWhen(entry.timestamp)}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
 
     </div>
   );
