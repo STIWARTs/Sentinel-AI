@@ -7,17 +7,9 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-
-const data = [
-  { time: "10:20", inbound: 18, outbound: 8 },
-  { time: "10:21", inbound: 28, outbound: 10 },
-  { time: "10:21:30", inbound: 22, outbound: 9 },
-  { time: "10:22", inbound: 35, outbound: 14 },
-  { time: "10:22:30", inbound: 30, outbound: 12 },
-  { time: "10:23", inbound: 42, outbound: 16 },
-  { time: "10:23:30", inbound: 38, outbound: 15 },
-  { time: "10:24", inbound: 55, outbound: 20 },
-];
+import { useEffect, useState } from "react";
+import { useWebSocket } from "../../hooks/useWebSocket";
+import { apiGet, getWebSocketUrl } from "../../api/client";
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -26,7 +18,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         <p className="chart-tooltip-label">{label}</p>
         {payload.map((p) => (
           <p key={p.dataKey} style={{ color: p.color }} className="chart-tooltip-row">
-            {p.dataKey === "inbound" ? "Inbound" : "Outbound"}: {p.value} Mbps
+            Risk score: {p.value}
           </p>
         ))}
       </div>
@@ -36,6 +28,29 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function AttackTimeline() {
+  const { lastMessage } = useWebSocket(getWebSocketUrl("/ws/live"));
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    apiGet("/api/dashboard/recent-flows")
+      .then((flows) => setData((flows || []).slice().reverse().map((flow) => ({
+        time: new Date(flow.timestamp).toLocaleTimeString([], { hour12: false }),
+        bytes: Number(flow.risk_score) || 0,
+      })).slice(-8)))
+      .catch(() => setData([]));
+  }, []);
+
+  useEffect(() => {
+    if (lastMessage?.type !== "flow_update") return;
+    setData((current) => [
+      ...current,
+      {
+        time: new Date(lastMessage.timestamp).toLocaleTimeString([], { hour12: false }),
+        bytes: Number(lastMessage.bytes) || 0,
+      },
+    ].slice(-8));
+  }, [lastMessage]);
+
   return (
     <section className="dashboard-panel attack-timeline">
       <div className="panel-header">
@@ -47,11 +62,7 @@ export default function AttackTimeline() {
         <div className="chart-legend">
           <span className="legend-item">
             <span className="legend-dot" style={{ background: "#2563eb" }} />
-            Inbound
-          </span>
-          <span className="legend-item">
-            <span className="legend-dot" style={{ background: "#16a34a" }} />
-            Outbound
+            Flow risk score
           </span>
         </div>
       </div>
@@ -89,26 +100,17 @@ export default function AttackTimeline() {
               tickLine={false}
               tick={{ fontSize: 10, fill: "#94a3b8" }}
               width={36}
-              tickFormatter={(v) => `${v} Mbps`}
+              tickFormatter={(v) => `${v}`}
             />
 
             <Tooltip content={<CustomTooltip />} />
 
             <Area
               type="monotone"
-              dataKey="inbound"
+              dataKey="bytes"
               stroke="#2563eb"
               strokeWidth={2}
               fill="url(#inboundGradient)"
-              dot={false}
-              activeDot={{ r: 4, strokeWidth: 0 }}
-            />
-            <Area
-              type="monotone"
-              dataKey="outbound"
-              stroke="#16a34a"
-              strokeWidth={2}
-              fill="url(#outboundGradient)"
               dot={false}
               activeDot={{ r: 4, strokeWidth: 0 }}
             />

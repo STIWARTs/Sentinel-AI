@@ -79,10 +79,11 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8888
 ```
 
 Set environment values in `backend/.env` before running the server.
+Start PostgreSQL first with `docker compose up -d postgres` or use an existing PostgreSQL instance matching `DATABASE_URL`.
 
 ### 4. Frontend
 
@@ -107,6 +108,6 @@ docker compose up --build
 The default ports in the scaffold are:
 
 - Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8000`
+- Backend: `http://localhost:8888`
 - PostgreSQL: `localhost:5432`
 - Redis: `localhost:6379`

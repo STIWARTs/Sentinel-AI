@@ -31,8 +31,7 @@ class IncidentStatusUpdate(BaseModel):
 
 
 class IncidentActionRequest(BaseModel):
-    action: str        # free-text description of what the analyst did
-    performed_by: str  # analyst username, supplied by the client
+    action: str  # free-text description of what the analyst did
 
 
 class IncidentActionResponse(BaseModel):

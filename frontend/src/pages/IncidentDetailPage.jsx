@@ -21,17 +21,6 @@ function displayStatus(status) {
   return status || "Open";
 }
 
-function usernameFromToken() {
-  const token = localStorage.getItem("sentinel_token");
-  if (!token) return "analyst";
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.sub || "analyst";
-  } catch {
-    return "analyst";
-  }
-}
-
 export default function IncidentDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -48,9 +37,13 @@ export default function IncidentDetailPage() {
     if (!id) return undefined;
     setLoading(true);
     setActions([]);
-    apiGet(`/api/incidents/${id}`)
-      .then((row) => {
+    Promise.all([
+      apiGet(`/api/incidents/${id}`),
+      apiGet(`/api/incidents/${id}/actions`),
+    ])
+      .then(([row, actionRows]) => {
         setIncident(row);
+        setActions(Array.isArray(actionRows) ? actionRows : []);
         setLoading(false);
       })
       .catch((err) => {
@@ -85,7 +78,6 @@ export default function IncidentDetailPage() {
     try {
       const created = await apiPost(`/api/incidents/${id}/actions`, {
         action,
-        performed_by: usernameFromToken(),
       });
       setActions((prev) => [created, ...prev]);
       setActionText("");

@@ -5,35 +5,38 @@ import {
   ShieldAlert,
   Activity,
 } from "lucide-react";
-
-const reports = [
-  {
-    id: "RPT-2026-082",
-    name: "Daily Security Summary",
-    period: "Today",
-    type: "Security Summary",
-    incidents: 12,
-    generated: "14:40:12",
-  },
-  {
-    id: "RPT-2026-081",
-    name: "Weekly Threat Analysis",
-    period: "Aug 01 – Aug 07",
-    type: "Threat Analysis",
-    incidents: 48,
-    generated: "Yesterday",
-  },
-  {
-    id: "RPT-2026-080",
-    name: "Network Activity Report",
-    period: "Aug 07",
-    type: "Network",
-    incidents: 7,
-    generated: "Yesterday",
-  },
-];
+import { useEffect, useState } from "react";
+import { apiGet } from "../api/client";
 
 export default function Reports() {
+  const [incidents, setIncidents] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    apiGet("/api/incidents")
+      .then((rows) => setIncidents(Array.isArray(rows) ? rows : []))
+      .catch(setError);
+  }, []);
+
+  const reports = incidents.slice(0, 10).map((incident) => ({
+    id: `INC-${incident.id}`,
+    name: incident.title,
+    period: new Date(incident.created_at).toLocaleDateString(),
+    type: incident.attack_chain,
+    incidents: 1,
+    generated: new Date(incident.created_at).toLocaleTimeString([], { hour12: false }),
+    incident,
+  }));
+
+  function downloadJson(value, filename) {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="reports-page">
 
@@ -45,7 +48,7 @@ export default function Reports() {
           </p>
         </div>
 
-        <button className="primary-button">
+        <button className="primary-button" onClick={() => downloadJson(incidents, "sentinel-incidents-report.json")} disabled={!incidents.length}>
           <FileText size={15} />
           Generate report
         </button>
@@ -60,7 +63,7 @@ export default function Reports() {
 
           <div>
             <span>Reports generated</span>
-            <strong>24</strong>
+            <strong>{incidents.length}</strong>
           </div>
         </div>
 
@@ -71,7 +74,7 @@ export default function Reports() {
 
           <div>
             <span>Incidents analyzed</span>
-            <strong>186</strong>
+            <strong>{incidents.length}</strong>
           </div>
         </div>
 
@@ -82,7 +85,7 @@ export default function Reports() {
 
           <div>
             <span>Threat events</span>
-            <strong>1,842</strong>
+            <strong>{incidents.length}</strong>
           </div>
         </div>
 
@@ -112,7 +115,9 @@ export default function Reports() {
             </thead>
 
             <tbody>
-              {reports.map((report) => (
+              {error ? (
+                <tr><td colSpan="6">Unable to load incident reports.</td></tr>
+              ) : reports.length ? reports.map((report) => (
                 <tr key={report.id}>
 
                   <td>
@@ -139,13 +144,16 @@ export default function Reports() {
                     <button
                       className="report-download"
                       title="Download report"
+                      onClick={() => downloadJson(report.incident, `${report.id.toLowerCase()}-report.json`)}
                     >
                       <Download size={15} />
                     </button>
                   </td>
 
                 </tr>
-              ))}
+              )) : (
+                <tr><td colSpan="6">No incident reports available.</td></tr>
+              )}
             </tbody>
 
           </table>

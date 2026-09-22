@@ -47,11 +47,18 @@ def get_summary(
         .filter(Incident.status == "Resolved")
         .count()
     )
+    monitored_devices = (
+        db.query(func.count(func.distinct(FlowLog.src_ip)))
+        .filter(FlowLog.src_ip.isnot(None))
+        .scalar()
+        or 0
+    )
 
     return {
         "todays_alerts": todays_alerts,
         "critical_threats": critical_threats,
         "blocked_attacks": blocked_attacks,
+        "monitored_devices": monitored_devices,
     }
 
 
@@ -75,3 +82,27 @@ def get_attack_distribution(
         .all()
     )
     return {attack: count for attack, count in results}
+
+
+@router.get("/recent-flows")
+def get_recent_flows(
+    db: Session = Depends(get_db),
+    _user: dict = Depends(require_role("viewer")),
+):
+    """Return recent flow predictions for the dashboard timeline and live feed."""
+    rows = (
+        db.query(FlowLog)
+        .order_by(FlowLog.timestamp.desc())
+        .limit(50)
+        .all()
+    )
+    return [
+        {
+            "id": row.id,
+            "timestamp": row.timestamp.isoformat(),
+            "src_ip": row.src_ip,
+            "prediction": row.prediction,
+            "risk_score": row.risk_score,
+        }
+        for row in rows
+    ]

@@ -5,15 +5,31 @@ import {
   Server,
   ShieldCheck,
 } from "lucide-react";
-
-const protocolData = [
-  { protocol: "TCP", value: 0 },
-  { protocol: "UDP", value: 0 },
-  { protocol: "DNS", value: 0 },
-  { protocol: "HTTP", value: 0 },
-];
+import { useEffect, useMemo, useState } from "react";
+import { useWebSocket } from "../hooks/useWebSocket";
+import { apiGet, getWebSocketUrl } from "../api/client";
 
 export default function Network() {
+  const { connected, lastMessage } = useWebSocket(getWebSocketUrl("/ws/live"));
+  const [events, setEvents] = useState([]);
+
+  useEffect(() => {
+    apiGet("/api/dashboard/recent-flows")
+      .then((flows) => setEvents(Array.isArray(flows) ? flows : []))
+      .catch(() => setEvents([]));
+  }, []);
+
+  useEffect(() => {
+    if (lastMessage?.type !== "flow_update") return;
+    setEvents((current) => [lastMessage, ...current].slice(0, 50));
+  }, [lastMessage]);
+
+  const deviceCount = useMemo(
+    () => new Set(events.map((event) => event.src_ip).filter(Boolean)).size,
+    [events],
+  );
+  const totalBytes = events.reduce((sum, event) => sum + (Number(event.bytes) || 0), 0);
+
   return (
     <div className="network-page">
 
@@ -40,8 +56,8 @@ export default function Network() {
 
           <div>
             <span>Network Traffic</span>
-            <strong>—</strong>
-            <small>Awaiting live data</small>
+            <strong>{totalBytes || "—"}</strong>
+            <small>{events.length ? "Observed flow bytes" : "Awaiting live data"}</small>
           </div>
         </div>
 
@@ -52,8 +68,8 @@ export default function Network() {
 
           <div>
             <span>Active Connections</span>
-            <strong>—</strong>
-            <small>Awaiting live data</small>
+            <strong>{events.length || "—"}</strong>
+            <small>{events.length ? "Recent flow events" : "Awaiting live data"}</small>
           </div>
         </div>
 
@@ -64,8 +80,8 @@ export default function Network() {
 
           <div>
             <span>Monitored Devices</span>
-            <strong>—</strong>
-            <small>Awaiting live data</small>
+            <strong>{deviceCount || "—"}</strong>
+            <small>{deviceCount ? "Observed source IPs" : "Awaiting live data"}</small>
           </div>
         </div>
 
@@ -76,8 +92,8 @@ export default function Network() {
 
           <div>
             <span>Network Status</span>
-            <strong>Normal</strong>
-            <small>No active network alerts</small>
+            <strong>{connected ? "Live" : "Disconnected"}</strong>
+            <small>{connected ? "Receiving telemetry" : "WebSocket unavailable"}</small>
           </div>
         </div>
 
@@ -99,8 +115,7 @@ export default function Network() {
             <h3>Waiting for network data</h3>
 
             <p>
-              Live traffic information will appear here when the
-              network monitoring pipeline is connected.
+              {events.length ? `${events.length} recent flow events received.` : "Live traffic information will appear here when the network monitoring pipeline is connected."}
             </p>
           </div>
         </div>
@@ -114,7 +129,7 @@ export default function Network() {
           </div>
 
           <div className="protocol-list">
-            {protocolData.map((item) => (
+            {[{ protocol: "Captured flows", value: events.length }].map((item) => (
               <div
                 className="protocol-row"
                 key={item.protocol}
@@ -126,12 +141,12 @@ export default function Network() {
                 <div className="protocol-bar">
                   <div
                     className="protocol-bar-fill"
-                    style={{ width: `${item.value}%` }}
+                    style={{ width: `${item.value ? 100 : 0}%` }}
                   />
                 </div>
 
                 <span className="protocol-value">
-                  —
+                  {item.value || "—"}
                 </span>
               </div>
             ))}

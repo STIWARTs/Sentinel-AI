@@ -2,17 +2,19 @@
 # Import get_current_user or require_role() as a Depends() argument in any router.
 
 import logging
+from typing import Optional
 
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 
 from auth.jwt_handler import decode_token
+from config import settings
 
 logger = logging.getLogger(__name__)
 
 # HTTPBearer extracts the token from "Authorization: Bearer <token>" automatically.
-bearer_scheme = HTTPBearer()
+bearer_scheme = HTTPBearer(auto_error=False)
 
 # Numeric rank per role so a higher-privileged role satisfies any lower requirement.
 ROLE_RANK: dict[str, int] = {
@@ -23,13 +25,22 @@ ROLE_RANK: dict[str, int] = {
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
 ) -> dict:
     """FastAPI dependency that decodes the JWT and returns the token payload.
 
     Raises 401 if the token is missing, malformed, or expired.
     The returned dict contains at minimum {"sub": username, "role": role}.
     """
+    if settings.DISABLE_AUTH:
+        return {"sub": "dev-user", "role": "admin"}
+
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
     try:
         payload = decode_token(credentials.credentials)
         if payload.get("sub") is None:

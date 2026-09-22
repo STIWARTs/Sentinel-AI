@@ -3444,3 +3444,234 @@ ol {
     grid-template-columns: 1fr;
   }
 }
+
+/* Dashboard components use the live-feed naming used by the React views. */
+.attack-distribution-content {
+  min-height: 250px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.attack-distribution-chart {
+  position: relative;
+  width: 58%;
+  min-width: 0;
+  height: 220px;
+}
+
+.attack-distribution-total {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.attack-distribution-total strong {
+  color: var(--text-primary);
+  font-size: 22px;
+}
+
+.attack-distribution-total span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.attack-distribution-legend {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.attack-distribution-item {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.attack-distribution-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.attack-distribution-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attack-distribution-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.live-feed-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.live-feed-header,
+.live-feed-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.live-feed-header h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.live-feed-header p {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.live-feed-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.live-feed-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.live-feed-panel .panel-header {
+  min-height: 58px;
+}
+
+.live-feed-panel .panel-header h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.live-feed-panel .panel-header span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.live-feed-status,
+.live-feed-pause {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.live-feed-pause {
+  padding: 6px 9px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.live-feed-status.connected {
+  color: var(--success);
+}
+
+.live-feed-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-light);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.data-table th {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.data-table td {
+  color: var(--text-secondary);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.protocol-badge,
+.feed-status,
+.severity-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.protocol-badge {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.feed-status.detected,
+.severity-critical {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.feed-status.normal,
+.severity-low {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.severity-high {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.severity-medium {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+@media (max-width: 900px) {
+  .dashboard-analysis,
+  .live-feed-grid {
+    grid-template-columns: 1fr;
+  }
+}

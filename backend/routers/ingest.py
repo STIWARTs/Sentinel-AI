@@ -4,6 +4,7 @@
 # Auth: protected by a static X-Agent-Key header (not JWT) because the capture agent
 # is a machine process; human-facing JWT auth is used by all other endpoints.
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
@@ -75,13 +76,13 @@ async def ingest_flow(data: FlowIngestRequest, db: Session = Depends(get_db)):
     Pipeline: predict -> risk score -> save FlowLog -> broadcast -> correlate ->
               if chain: create Incident -> AI explanation -> broadcast incident alert.
     """
-    src_ip = data.src_ip
+    src_ip = str(data.src_ip)
     # Pull the extra feature fields out of the Pydantic model as a plain dict.
     features = data.model_extra
 
     # 1. Run ML prediction. Raises ValueError if required features are missing.
     try:
-        prediction, confidence = predict(features)
+        prediction, confidence = await asyncio.to_thread(predict, features)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
 
@@ -102,9 +103,11 @@ async def ingest_flow(data: FlowIngestRequest, db: Session = Depends(get_db)):
     # 4. Push a live update to all connected dashboard clients.
     await manager.broadcast({
         "type": "flow_update",
+        "timestamp": flow_log.timestamp.isoformat(),
         "src_ip": src_ip,
         "prediction": prediction,
         "risk_score": risk_score,
+        "bytes": features.get("total_length_fwd_packets", 0) + features.get("total_length_bwd_packets", 0),
     })
 
     if prediction == "BENIGN":
@@ -134,7 +137,7 @@ async def ingest_flow(data: FlowIngestRequest, db: Session = Depends(get_db)):
         db.refresh(incident)
 
         # 6. Generate a plain-English explanation via Gemini (degrades gracefully if key absent).
-        explanation = generate_explanation({
+        explanation = await asyncio.to_thread(generate_explanation, {
             "attack_chain": correlation_result["chain"],
             "src_ip": src_ip,
             "risk_score": risk_score,
@@ -146,14 +149,22 @@ async def ingest_flow(data: FlowIngestRequest, db: Session = Depends(get_db)):
         # 7. Broadcast the new incident to the dashboard.
         await manager.broadcast({
             "type": "new_incident",
+            "timestamp": incident.created_at.isoformat(),
             "incident_id": incident.id,
             "title": incident.title,
+            "src_ip": src_ip,
             "severity": severity,
             "explanation": explanation,
         })
 
         # 8. Fire alert notifications (email / Telegram stubs).
-        send_incident_alert(incident.title, severity, src_ip, explanation)
+        await asyncio.to_thread(
+            send_incident_alert,
+            incident.title,
+            severity,
+            src_ip,
+            explanation,
+        )
 
         logger.info(f"Incident created: id={incident.id} chain={correlation_result['chain']} ip={src_ip}")
 

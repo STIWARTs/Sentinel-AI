@@ -52,7 +52,7 @@ export default function SummaryCards() {
     },
     {
       label: "Monitored Devices",
-      value: "—",
+      value: summary?.monitored_devices ?? "—",
       icon: Monitor,
       iconColor: "#b45309",
       iconBg: "#fff7ed",
@@ -98,7 +98,7 @@ export default function SummaryCards() {
 
               <span className="summary-trend-label">
                 {item.label === "Monitored Devices"
-                  ? "Not available from backend"
+                  ? "Unique source IPs"
                   : "Current total"}
               </span>
             </div>

@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 
 # { src_ip: [(attack_type, timestamp), ...] }
 recent_events: dict[str, list[tuple[str, datetime]]] = defaultdict(list)
+reported_chains: dict[tuple[str, str], datetime] = {}
 
 # How far back to look when checking for a chain. Events older than this are discarded.
 CORRELATION_WINDOW_MINUTES = 15
@@ -17,8 +18,8 @@ CORRELATION_WINDOW_MINUTES = 15
 # Each entry is an ordered list of attack types that constitutes a detected campaign.
 # Ordering matters: [A, B] means A must have been seen before B.
 ATTACK_CHAINS: list[list[str]] = [
-    ["PortScan", "BruteForce"],
     ["PortScan", "BruteForce", "DDoS"],
+    ["PortScan", "BruteForce"],
     ["BruteForce", "Bot"],
 ]
 
@@ -40,7 +41,17 @@ def record_event(src_ip: str, attack_type: str) -> dict | None:
         (a, t) for a, t in recent_events[src_ip] if t > cutoff
     ]
 
-    return check_for_incident(src_ip)
+    result = check_for_incident(src_ip)
+    if result is None:
+        return None
+
+    chain_key = (src_ip, result["chain"])
+    previous_report = reported_chains.get(chain_key)
+    if previous_report and previous_report > cutoff:
+        return None
+
+    reported_chains[chain_key] = now
+    return result
 
 
 def check_for_incident(src_ip: str) -> dict | None:

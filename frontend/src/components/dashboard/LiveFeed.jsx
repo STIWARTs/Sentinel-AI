@@ -2,76 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Pause, Play } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import { WS_URL } from "../../api/client";
-
-const initialIncidents = [
-  {
-    id: "1042",
-    severity: "Critical",
-    type: "DDoS Attack",
-    source: "192.168.1.25",
-    time: "14:32:08",
-  },
-  {
-    id: "1041",
-    severity: "High",
-    type: "Port Scan",
-    source: "10.0.0.42",
-    time: "14:29:51",
-  },
-  {
-    id: "1040",
-    severity: "High",
-    type: "Brute Force",
-    source: "10.0.0.17",
-    time: "14:27:14",
-  },
-  {
-    id: "1039",
-    severity: "Medium",
-    type: "Suspicious DNS",
-    source: "10.0.0.31",
-    time: "14:21:43",
-  },
-  {
-    id: "1038",
-    severity: "Low",
-    type: "Unusual Traffic",
-    source: "10.0.0.56",
-    time: "14:18:02",
-  },
-];
-
-const initialFeedEvents = [
-  {
-    time: "14:32:08",
-    source: "192.168.1.25",
-    destination: "192.168.1.1",
-    protocol: "TCP",
-    status: "Blocked",
-  },
-  {
-    time: "14:31:44",
-    source: "10.0.0.42",
-    destination: "10.0.0.1",
-    protocol: "TCP",
-    status: "Detected",
-  },
-  {
-    time: "14:30:21",
-    source: "10.0.0.17",
-    destination: "10.0.0.8",
-    protocol: "SSH",
-    status: "Detected",
-  },
-  {
-    time: "14:29:58",
-    source: "10.0.0.31",
-    destination: "8.8.8.8",
-    protocol: "DNS",
-    status: "Normal",
-  },
-];
+import { apiGet, getWebSocketUrl } from "../../api/client";
 
 function formatTime(value) {
   if (!value) return new Date().toLocaleTimeString([], { hour12: false });
@@ -85,21 +16,39 @@ function formatTime(value) {
   return String(value);
 }
 
-function severityFromRisk(risk) {
-  const value = Number(risk ?? 0);
-
-  if (value >= 90) return "Critical";
-  if (value >= 70) return "High";
-  if (value >= 40) return "Medium";
-  return "Low";
-}
-
 export default function LiveFeed() {
-  const { connected, lastMessage } = useWebSocket(`${WS_URL}/ws/live`);
+  const { connected, lastMessage } = useWebSocket(getWebSocketUrl("/ws/live"));
 
   const [paused, setPaused] = useState(false);
-  const [incidents, setIncidents] = useState(initialIncidents);
-  const [feedEvents, setFeedEvents] = useState(initialFeedEvents);
+  const [incidents, setIncidents] = useState([]);
+  const [feedEvents, setFeedEvents] = useState([]);
+
+  useEffect(() => {
+    Promise.all([
+      apiGet("/api/incidents"),
+      apiGet("/api/dashboard/recent-flows"),
+    ])
+      .then(([incidentRows, flowRows]) => {
+        setIncidents((incidentRows || []).slice(0, 5).map((incident) => ({
+          id: incident.id,
+          severity: incident.severity ?? "Medium",
+          type: incident.title ?? incident.attack_chain ?? "Security Incident",
+          source: incident.src_ip ?? "—",
+          time: formatTime(incident.created_at),
+        })));
+        setFeedEvents((flowRows || []).slice(0, 8).map((flow) => ({
+          time: formatTime(flow.timestamp),
+          source: flow.src_ip ?? "—",
+          destination: "Not provided",
+          protocol: "Flow",
+          status: flow.prediction !== "BENIGN" ? "Detected" : "Normal",
+        })));
+      })
+      .catch(() => {
+        setIncidents([]);
+        setFeedEvents([]);
+      });
+  }, []);
 
   useEffect(() => {
     if (!lastMessage || paused) return;
@@ -108,8 +57,8 @@ export default function LiveFeed() {
       const event = {
         time: formatTime(lastMessage.timestamp),
         source: lastMessage.src_ip ?? "—",
-        destination: lastMessage.dst_ip ?? "—",
-        protocol: lastMessage.protocol ?? "—",
+        destination: lastMessage.dst_ip ?? "Not provided",
+        protocol: lastMessage.protocol ?? "Not provided",
         status:
           lastMessage.prediction && lastMessage.prediction !== "BENIGN"
             ? "Detected"
@@ -124,7 +73,7 @@ export default function LiveFeed() {
         id: lastMessage.incident_id,
         severity: lastMessage.severity ?? "Medium",
         type: lastMessage.title ?? "Security Incident",
-        source: "—",
+        source: lastMessage.src_ip ?? "—",
         time: formatTime(lastMessage.timestamp),
       };
 
@@ -195,7 +144,7 @@ export default function LiveFeed() {
               </thead>
 
               <tbody>
-                {incidents.map((incident) => (
+                {incidents.length > 0 ? incidents.map((incident) => (
                   <tr key={incident.id}>
                     <td className="mono">
                       INC-{incident.id}
@@ -219,7 +168,9 @@ export default function LiveFeed() {
                       {incident.time}
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr><td colSpan="5">No live incidents received.</td></tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -246,7 +197,7 @@ export default function LiveFeed() {
               </thead>
 
               <tbody>
-                {feedEvents.map((event, index) => (
+                {feedEvents.length > 0 ? feedEvents.map((event, index) => (
                   <tr key={`${event.time}-${event.source}-${index}`}>
                     <td className="mono">{event.time}</td>
 
@@ -268,7 +219,9 @@ export default function LiveFeed() {
                       </span>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr><td colSpan="5">No live network events received.</td></tr>
+                )}
               </tbody>
             </table>
           </div>

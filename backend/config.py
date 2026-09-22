@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     # JWT signing secret — use a long random string in production.
     JWT_SECRET: str = "change-this-to-a-long-random-string-in-production"
     JWT_ALGORITHM: str = "HS256"
+    DISABLE_AUTH: bool = False
 
     # Google Gemini API key for the AI Copilot feature.
     # Leave blank during development — the copilot degrades gracefully when absent.
@@ -18,7 +19,10 @@ class Settings(BaseSettings):
 
     # Static key the capture agent sends in X-Agent-Key header to authenticate /api/ingest.
     # Must match what is set in capture-agent/.env under the same variable name.
-    AGENT_INGEST_KEY: str = "change-this-agent-key"
+    AGENT_INGEST_KEY: str = ""
+
+    # Comma-separated browser origins allowed to call the backend.
+    FRONTEND_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
     # SMTP settings for email alerts (used by services/alert_service.py).
     SMTP_HOST: str = ""

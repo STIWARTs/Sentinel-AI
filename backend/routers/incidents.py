@@ -93,13 +93,13 @@ def update_incident_status(
 #   curl -X POST http://localhost:8000/api/incidents/1/actions \
 #     -H "Authorization: Bearer <token>" \
 #     -H "Content-Type: application/json" \
-#     -d '{"action": "Blocked source IP at firewall", "performed_by": "analyst1"}'
+#     -d '{"action": "Blocked source IP at firewall"}'
 @router.post("/{incident_id}/actions", response_model=IncidentActionResponse)
 def add_incident_action(
     incident_id: int,
     body: IncidentActionRequest,
     db: Session = Depends(get_db),
-    _user: dict = Depends(require_role("analyst")),
+    user: dict = Depends(require_role("analyst")),
 ):
     """Log an analyst action taken on this incident (e.g. blocked IP, escalated).
 
@@ -114,9 +114,28 @@ def add_incident_action(
     new_action = IncidentAction(
         incident_id=incident_id,
         action=body.action,
-        performed_by=body.performed_by,
+        performed_by=user["sub"],
     )
     db.add(new_action)
     db.commit()
     db.refresh(new_action)
     return new_action
+
+
+@router.get("/{incident_id}/actions", response_model=list[IncidentActionResponse])
+def list_incident_actions(
+    incident_id: int,
+    db: Session = Depends(get_db),
+    _user: dict = Depends(require_role("viewer")),
+):
+    """Return the persisted analyst actions for an incident, newest first."""
+    incident_exists = db.query(Incident.id).filter(Incident.id == incident_id).first()
+    if incident_exists is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
+
+    return (
+        db.query(IncidentAction)
+        .filter(IncidentAction.incident_id == incident_id)
+        .order_by(IncidentAction.timestamp.desc())
+        .all()
+    )

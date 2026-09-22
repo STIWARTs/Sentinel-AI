@@ -1,8 +1,8 @@
 import { useWebSocket } from "../../hooks/useWebSocket";
-import { WS_URL } from "../../api/client";
+import { getWebSocketUrl } from "../../api/client";
 
 export default function StatusBar() {
-  const { connected } = useWebSocket(`${WS_URL}/ws/live`);
+  const { connected } = useWebSocket(getWebSocketUrl("/ws/live"));
 
   return (
     <footer className="status-bar">

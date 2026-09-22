@@ -26,7 +26,7 @@ Postgres via Docker:
 | Gemini AI Copilot (incident explanation) | Working | full plain-English explanation with next steps stored in ai_explanation |
 | Copilot Q&A endpoint (/api/copilot/ask) | Working | 200 with real Gemini answer, analyst role enforced |
 | JWT login + role-based access control | Working | admin login, viewer < analyst < admin hierarchy |
-| WebSocket live broadcast | Wired | broadcast calls in ingest flow; frontend consumer not built yet |
+| WebSocket live broadcast | Working | authenticated frontend consumer receives live flow and incident events |
 
 The live capture agent (`capture-agent/agent.py`) is now implemented and is
 the real ingestion path: scapy sniffing -> bidirectional 5-tuple flow
@@ -43,7 +43,7 @@ for machines without a packet-capture driver.
 | Backend, full Step 3 (Step 3 part I + II) | Stiwart | Done and verified live |
 | Dataset replay demo fallback | Stiwart | Done. capture-agent/replay.py |
 | Capture agent (Step 2) | teammate | Done. Live sniffing, flow aggregation, feature computation and sender implemented; see capture-agent/README.md |
-| Frontend dashboard (Step 4) | teammate | NOT started. React skeleton exists in frontend/ |
+| Frontend dashboard (Step 4) | teammate | Done. Dashboard, live feed, charts and network telemetry consume backend data |
 | Docker Compose | Stiwart | Postgres service usable; backend/frontend services reference Dockerfiles that do not exist yet |
 
 ## 3. Environment knowledge (hard-won, do not lose)
