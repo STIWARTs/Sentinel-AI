@@ -1,0 +1,96 @@
+:root {
+
+  --font-size-base: 13px;
+
+  /* ================================
+     Backgrounds
+     ================================ */
+
+  --bg-primary: #f1f5f9;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f8fafc;
+  --bg-hover: #f1f5f9;
+
+  /* ================================
+     Borders
+     ================================ */
+
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
+
+  /* ================================
+     Text
+     ================================ */
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* ================================
+     Brand — Blue
+     ================================ */
+
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --primary-muted: #bfdbfe;
+
+  /* ================================
+     Status
+     ================================ */
+
+  --success: #16a34a;
+  --success-light: #f0fdf4;
+  --success-muted: #bbf7d0;
+
+  --warning: #d97706;
+  --warning-light: #fffbeb;
+  --warning-muted: #fde68a;
+
+  --danger: #dc2626;
+  --danger-light: #fef2f2;
+  --danger-muted: #fecaca;
+
+  --critical: #991b1b;
+  --critical-light: #fef2f2;
+
+  /* ================================
+     Shadows
+     ================================ */
+
+  --shadow-sm:
+    0 1px 2px rgba(15, 23, 42, 0.06);
+
+  --shadow-md:
+    0 4px 12px rgba(15, 23, 42, 0.08);
+
+  /* ================================
+     Radius
+     ================================ */
+
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* ================================
+     Layout
+     ================================ */
+
+  --sidebar-width: 220px;
+  --topbar-height: 60px;
+  --statusbar-height: 32px;
+
+  /* ================================
+     Typography
+     ================================ */
+
+  --font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
